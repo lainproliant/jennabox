@@ -10,7 +10,7 @@
 import cherrypy
 import os
 
-from .renderer import HomeRenderer
+from .pages import *
 
 #--------------------------------------------------------------------
 class JennaBoxConfig:
@@ -21,7 +21,7 @@ class JennaBoxConfig:
             },
             '/static': {
                 'tools.staticdir.on':       True,
-                'tools.staticdir.dir':      './public'
+                'tools.staticdir.dir':      'static'
             },
             '/images': {
                 'tools.staticdir.on':       True,
@@ -33,10 +33,12 @@ class JennaBoxConfig:
 class JennaBoxServer:
     def __init__(self):
         pass
-
+    
     @cherrypy.expose
     def index(self):
-        return HomeRenderer().render()
+        page = HomePage()
+        page.js('test.js')
+        return str(page.render())
 
     @cherrypy.expose
     def search(self, query):
