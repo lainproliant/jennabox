@@ -4,6 +4,3 @@
 [submodule "static/minimal-css"]
 	path = assets/minimal-css
 	url = https://github.com/billyshall/minimalcss
-[submodule "indent-tools"]
-	path = indent-tools
-	url = https://github.com/lainproliant/indent-tools
