@@ -6,6 +6,8 @@
 # Date: Tuesday, August 23rd 2016
 #--------------------------------------------------------------------
 
+import os
+
 from indent_tools import html
 from .markup import markup
 
@@ -44,6 +46,22 @@ class PageRenderer(Renderer):
         self._css_files.append(href)
         return self
 
+    def asset(self, asset):
+        ext = os.path.splitext(asset)[1]
+            
+        if ext == '.js':
+            self._js_files.append(asset)
+        elif ext == '.css':
+            self._css_files.append(asset)
+        else:
+            raise ValueError('Unknown asset extension: %s' % asset)
+        return self
+
+    def assets(self, assets):
+        for asset in assets:
+            self.asset(asset)
+        return self
+
     def title(self, title):
         self._title = title
         return self
@@ -58,4 +76,3 @@ class PageRenderer(Renderer):
                  [markup.js(x) for x in self._js_files],
                  [markup.css(x) for x in self._css_files],
                 self.body())
-

@@ -21,13 +21,22 @@ class Header(Renderer):
 class SearchForm(Renderer):
     def render(self):
         return html.form(action='/search', method='get')({'class': 'search-form'})(
-            markup.text_input('query', placeholder='Search with tags'),
-            markup.submit_button())
+            markup.text_input('query', placeholder='Search with tags')({'class': 'col-10'}),
+            markup.submit_button()(markup.icon('search'))({'class': 'col-2'}))
 
+#--------------------------------------------------------------------
+class LoginForm(Renderer):
+    def render(self):
+        return html.form(action='/login', method='post')({'class': 'login-form col-4'})(
+            html.div({'class': 'row'})(
+                markup.text_field('username', 'Username:', placeholder = 'your username')),
+            html.div({'class': 'row'})(
+                markup.password_field('username', 'Password:', placeholder = 'your password')),
+            html.div({'class': 'row'})(
+                markup.submit_button('Login')({'class': 'float-right'})))
+        
 #--------------------------------------------------------------------
 class BasicLeftNav(Renderer):
     def render(self):
-        return html.div(id='left-nav')({'class': 'col-2'})(
-            html.div({'class': 'row'})(
-                SearchForm().render()))
+        return html.div({'class': 'row'})(SearchForm().render())
 

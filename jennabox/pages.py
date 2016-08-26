@@ -14,11 +14,11 @@ from .markup import markup
 #--------------------------------------------------------------------
 class Page(PageRenderer):
     def body(self):
-        return html.div(id = 'content')({'class': 'container'})(
+        return html.div({'class': 'container'})(
             self.header(),
             html.div({'class': 'row'})(
-                self.nav(),
-                self.content()))
+                html.div(id = 'nav')({'class': 'col-2'})(self.nav()),
+                html.div(id = 'content')({'class': 'col-10'})(self.content())))
     
     def header(self):
         return Header().render()
@@ -32,5 +32,12 @@ class Page(PageRenderer):
 #--------------------------------------------------------------------
 class HomePage(Page):
     def content(self):
-        return html.div({'class': 'col-10'})(
-            html.h1('I love you Jenna!'))
+        return html.div({'class': 'intro-box'})(
+            html.h1('Welcome'),
+            html.h3('JennaBox is a private image hosting and tagging site for you, your friends, and your family.'))
+
+#--------------------------------------------------------------------
+class LoginPage(Page):
+    def content(self):
+        return LoginForm().render()
+

@@ -18,17 +18,41 @@ class MarkupFactory:
 
     def link(self, title, href):
         return html.a(title, href=href)
+    
+    def text_field(self, name, label, value = None, placeholder = None):
+        return [
+            self.label(name, label),
+            self.text_input(name, value, placeholder)
+        ]
+
+    def password_field(self, name, label, placeholder):
+        return [
+            self.label(name, label),
+            self.password_input(name, placeholder)
+        ]
+    
+    def label(self, name, label):
+        return html.label({'for': name, 'class': 'label'})(label)
 
     def text_input(self, name, value = None, placeholder = None):
-        input_element = html.input(type='text', name=name)
+        input_element = html.input(type='text', name=name, id=name)({'class': 'text-input'})
         if value is not None:
-            input_element = input_element(value=value)
+            input_element(value=value)
         if placeholder is not None:
-            input_element = input_element(placeholder=placeholder)
+            input_element(placeholder=placeholder)
         return input_element
 
-    def submit_button(self, label = 'Submit'):
-        return html.input(type='submit', value=label)
+    def password_input(self, name, placeholder = None):
+        password_element = html.input(type='password', name=name, id=name)({'class': 'password-input'})
+        if placeholder is not None:
+            password_element(placeholder=placeholder)
+        return password_element
+
+    def submit_button(self, label = None):
+        button = html.button({'class': 'btn-submit'})(type = 'submit')
+        if label is not None:
+            button(label)
+        return button
 
     def icon(self, name, classes = []):
         return html.i({'class': ' '.join(['fa', 'fa-' + name] + classes)})

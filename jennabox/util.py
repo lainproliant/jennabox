@@ -6,33 +6,35 @@
 # Date: Tuesday, August 23rd 2016
 #--------------------------------------------------------------------
 
-import os
+#--------------------------------------------------------------------
+def compose(*decorators):
+    """
+        Compose multiple decorators into a single decorator.
+    """
+    def composed(f):
+        name = f.__name__
+        for dec in decorators:
+            f = dec(f)
+        f.__name__ = name
+        return f
+    return composed
 
 #--------------------------------------------------------------------
-class RenderFilter:
-    def process(self, renderer):
-        pass
-    
-    def __call__(self, render_f):
-        def render_f_impl(*args, **kwargs):
-            renderer = render_f(*args, **kwargs)
-            self.process(renderer)
-            return str(renderer.render())
-        return render_f_impl
-
-#--------------------------------------------------------------------
-class AssetInjector(RenderFilter):
+class AssetInjector:
     def __init__(self, *assets):
         self._assets = assets
-        
-    def process(self, renderer):
-        for asset in self._assets:
-            ext = os.path.splitext(asset)[1]
-            if ext == '.js':
-                renderer.js(asset)
-            elif ext == '.css':
-                renderer.css(asset)
-            else:
-                raise ValueError('Unknown asset extension: %s' % asset)
-        return renderer
+
+    def __call__(self, f):
+        def inject(*args, **kwargs):
+            renderer = f(*args, **kwargs)
+            renderer.assets(self._assets)
+            return renderer
+        return inject
+
+#--------------------------------------------------------------------
+class RenderInvoker:
+    def __call__(self, f):
+        def inject(*args, **kwargs):
+            return str(f(*args, **kwargs).render())
+        return inject
 
