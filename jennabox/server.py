@@ -10,6 +10,7 @@
 import cherrypy
 import os
 
+from .util import AssetInjector
 from .pages import *
 
 #--------------------------------------------------------------------
@@ -30,17 +31,24 @@ class JennaBoxConfig:
         }
 
 #--------------------------------------------------------------------
+assets = AssetInjector(
+    '/static/font-awesome/css/font-awesome.css',
+    '/static/minimal-css/minimal.css',
+    '/static/css/jennabox.css'
+)
+
+#--------------------------------------------------------------------
 class JennaBoxServer:
     def __init__(self):
         pass
-    
-    @cherrypy.expose
-    def index(self):
-        page = HomePage()
-        page.js('test.js')
-        return str(page.render())
 
     @cherrypy.expose
+    @assets
+    def index(self):
+        return HomePage()
+
+    @cherrypy.expose
+    @assets
     def search(self, query):
         pass
 

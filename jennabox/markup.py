@@ -30,5 +30,8 @@ class MarkupFactory:
     def submit_button(self, label = 'Submit'):
         return html.input(type='submit', value=label)
 
+    def icon(self, name, classes = []):
+        return html.i({'class': ' '.join(['fa', 'fa-' + name] + classes)})
+
 #--------------------------------------------------------------------
 markup = MarkupFactory()

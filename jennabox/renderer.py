@@ -41,7 +41,7 @@ class PageRenderer(Renderer):
         return self
 
     def css(self, href):
-        self._css_files.append(css)
+        self._css_files.append(href)
         return self
 
     def title(self, title):

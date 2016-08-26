@@ -13,17 +13,21 @@ from .markup import markup
 #--------------------------------------------------------------------
 class Header(Renderer):
     def render(self):
-        return html.div(id='header')(html.h1('JennaBox'))
+        return html.header(html.h1(
+            markup.icon('camera-retro'),
+            'JennaBox'))
 
 #--------------------------------------------------------------------
 class SearchForm(Renderer):
     def render(self):
-        return html.form(action='/search', method='get')(
+        return html.form(action='/search', method='get')({'class': 'search-form'})(
             markup.text_input('query', placeholder='Search with tags'),
             markup.submit_button())
 
 #--------------------------------------------------------------------
 class BasicLeftNav(Renderer):
     def render(self):
-        return html.div(id='left-nav')(SearchForm().render())
+        return html.div(id='left-nav')({'class': 'col-2'})(
+            html.div({'class': 'row'})(
+                SearchForm().render()))
 

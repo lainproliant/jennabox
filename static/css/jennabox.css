@@ -1,0 +1,12 @@
+#content {
+   width: 1200px;
+}
+
+.search-form input[type="text"] {
+   width: 65%;
+   padding-left: 5%;
+}
+
+.search-form input[type="submit"] {
+   width: 30%;
+}
