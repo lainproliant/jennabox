@@ -17,21 +17,23 @@ from .dao import *
 SQL_DDL_FILE = 'jennabox.sql'
 
 #--------------------------------------------------------------------
-class SqliteDaoSessionFactory(DaoSessionFactory):
+class DaoSessionFactoryImpl(DaoSessionFactory):
     def __init__(self, sqlite_file):
         self.sqlite_file = sqlite_file
+        self.dao_ctor_map = {}
+        self.
+        self.dao_ctor_map['user'] = lambda: SqliteUserDao()
+        self.dao_ctor_map['login'] = lambda
 
     def get(self):
-        return SqliteDaoFactory(sqlite_file)
+        return SqliteDaoSession(sqlite_file)
 
 #--------------------------------------------------------------------
 class SqliteDaoSession(DaoSession):
-    def __init__(self, sqlite_file):
+    def __init__(self, sqlite_file, login_dao):
         self.sqlite_file = sqlite_file
+        self.login_dao = login_dao
         self.db = None
-
-    def get_login_dao(self):
-        return SqliteLoginDao(self.db)
 
     def get_user_dao(self):
         return SqliteUserDao(self.db)
@@ -50,27 +52,22 @@ class SqliteDaoSession(DaoSession):
                 db.execute(infile.read())
 
 #--------------------------------------------------------------------
-class SqliteLoginDao:
-    def __init__(self, db):
-        self.db = db
-
-    def load_logins(self, username, valid = True):
-        if valid:
-            self.db.execute('select * from logins where username = ? and valid = 1 and expiry_dt > ?' % (
-                username, datetime.now()))
-        else:
-            self.db.execute('select * from logins where username = ?' % (username,))
+class InMemoryLoginDao(LoginDao):
+    def __init__(self):
+        self.cache = collections.defaultdict(list)
         
-        return [Login(*row) for row in self.db.fetchall()]
+    def load_logins(self, username, valid = True):
+        if username in self.cache:
+            return self.cache.get(username)
+        else:
+            return []
 
     def save_login(self, login):
-        self.invalidate_logins(login.username)
-        self.db.execute('insert into logins (valid, username, token, expiry_dt) values (?, ?, ?, ?)' % (
-            login.valid, login.username, login.token, login.expiry_dt))
-    
-    def invalidate_logins(self, username):
-        self.db.execute('update logins set valid = 0 where username = ?', (username,))
-        
+        self.cache[login.username].append(login)
+
+    def drop_logins(self, username):
+        del self.cache[username]
+
 #--------------------------------------------------------------------
 class SqliteUserDao(UserDao):
     def __init__(self, db):

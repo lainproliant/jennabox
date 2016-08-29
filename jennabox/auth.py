@@ -66,7 +66,7 @@ class DatabaseUserAuthProvider(AuthProvider):
                 raise LoginFailure(username)
 
     def logout(self):
-        login = self.__validate_session()
+        login = self._validate_session()
         if login is not None:
             login.valid = 0
             with self._daos() as daos:
@@ -96,7 +96,7 @@ class DatabaseUserAuthProvider(AuthProvider):
         with self._daos() as daos:
             login_dao = daos.get_login_dao()
             login = login_dao.get_login(token)
-            if login.valid and login.expiry_dt > datetime.now():
+            if login.expiry_dt > datetime.now():
                 return login
             else:
                 return None

@@ -16,44 +16,29 @@ class DaoSessionFactory:
 
 #--------------------------------------------------------------------
 class DaoSession:
-    def get_user_dao(self):
-        raise NotImplementedError()
-
-    def get_login_dao(self):
-        raise NotImplementedError()
-
-#--------------------------------------------------------------------
-class User:
-    def __init__(self, username, passhash, rights = None):
-        self.username = username
-        self.passhash = passhash
-        self.rights = rights or []
-
-#--------------------------------------------------------------------
-class Login:
-    def __init__(self, username, token = None, valid = 1, expiry_dt = None):
-        self.username = username
-        self.token = token or uuid.uuid4()
-        self.valid = valid
-        self.expiry_dt = expiry_dt
-
-#--------------------------------------------------------------------
-class LoginDao:
-    def load_logins(self, username, valid = True):
-        raise NotImplementedError()
-
-    def save_login(self, login):
-        raise NotImplementedError()
-
-#--------------------------------------------------------------------
-class UserDao:
-    def load_user(self, username):
-        raise NotImplementedError()
+    def __init__(self, dao_ctor_map):
+        self.dao_ctor_map = dao_ctor_map
     
-    def load_users(self, usernames):
+    def get(self, name):
+        if not name in self.dao_ctor_map:
+            raise ValueError('Dao not provided for resource "%s".' % name)
+
+        return self._provide(dao)
+    
+    def _provide(self, dao):
         raise NotImplementedError()
 
-    def save_user(self, user):
+    def __enter__(self):
         raise NotImplementedError()
 
+    def __exit__(self):
+        raise NotImplementedError()
+
+#--------------------------------------------------------------------
+class Dao:
+    def needs(self, name):
+        return False
+
+    def provide(self, name, resource):
+        pass
 
