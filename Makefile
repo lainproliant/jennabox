@@ -34,4 +34,5 @@ clean:
 	rm -rf $(OUTPUT)
 
 test: all
-	pushd $(OUTPUT); python -m jennabox.server; popd; rm -rf $(OUTPUT)
+	cp test_run.py $(OUTPUT)
+	pushd $(OUTPUT); pudb3 test_run.py; popd; rm -rf $(OUTPUT)

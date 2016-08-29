@@ -6,12 +6,12 @@
 # Date: Tuesday, August 23rd 2016
 #--------------------------------------------------------------------
 
-import threading
+import cherrypy
 
 #--------------------------------------------------------------------
 def compose(*decorators):
     """
-        Compose multiple decorators into a single decorator.
+    Compose multiple decorators into a single decorator.
     """
     def composed(f):
         name = f.__name__
@@ -22,21 +22,24 @@ def compose(*decorators):
     return composed
 
 #--------------------------------------------------------------------
-class AssetInjector:
-    def __init__(self, *assets):
-        self._assets = assets
-
-    def __call__(self, f):
-        def inject(*args, **kwargs):
-            renderer = f(*args, **kwargs)
-            renderer.assets(self._assets)
-            return renderer
-        return inject
+def render(f):
+    def wrapper(*args, **kwargs):
+        renderer = f(*args, **kwargs)
+        renderer.assets(f.__self__.get_assets())
+        return str(renderer.render())
+    return wrapper
 
 #--------------------------------------------------------------------
-class RenderInvoker:
-    def __call__(self, f):
-        def inject(*args, **kwargs):
-            return str(f(*args, **kwargs).render())
-        return inject
+page = compose(cherrypy.expose, render)
+
+#--------------------------------------------------------------------
+class BaseServer:
+    def __init__(self, assets):
+        self._assets = assets
+
+    def get_assets(self):
+        return self._assets
+
+    def start(self):
+        cherrypy.quickstart(self, '/', self.config.get_cherrypy_config())
 
