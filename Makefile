@@ -33,6 +33,10 @@ server: all
 clean:
 	rm -rf $(OUTPUT)
 
-test: all
+debug: all
 	cp test_run.py $(OUTPUT)
 	pushd $(OUTPUT); pudb3 test_run.py; popd; rm -rf $(OUTPUT)
+
+test: all
+	cp test_run.py $(OUTPUT)
+	pushd $(OUTPUT); python test_run.py; popd; rm -rf $(OUTPUT)

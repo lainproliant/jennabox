@@ -9,6 +9,7 @@
 import cherrypy
 from passlib.hash import bcrypt
 from datetime import datetime, timedelta
+from xeno import *
 
 #--------------------------------------------------------------------
 TOKEN_COOKIE = 'jennabook_login'
@@ -22,94 +23,29 @@ class AccessDenied(Exception):
     pass
 
 #--------------------------------------------------------------------
-class AuthInfo:
-    def __init__(self, user, rights):
-        self.user = user
-        self.rights = rights
+def require(f, *rights):
+    def wrapper(self, *args, **kwargs):
+        self.get_auth().require_rights(rights)
+        return f(self, *args, **kwargs)
 
+#--------------------------------------------------------------------
+class AuthModule:
+    @provide
+    def auth(self):
+        return DummyAuth()
+        
 #--------------------------------------------------------------------
 class AuthProvider:
-    pass
+    def __init__(self, dao_factory):
+        self.dao_factory = dao_factory
 
-#--------------------------------------------------------------------
-class DatabaseUserAuthProvider(AuthProvider):
-    def __init__(self, config):
-        self.config = config
-    
-    def require(self, *rights):
-        def decorator(f):
-            def decorate(*args, **kwargs):
-                rights_set = set(self.get_user().rights)
-                for right in rights:
-                    if not right in rights_set:
-                        raise AccessDenied()
-                return f(*args, **kwargs)
-            return decorate
-        return decorator
-
-    def get_user(self):
-        login = self._validate_session()
-        if login is not None:
-            with self._daos() as daos:
-                user_dao = daos.get_user_dao()
-                return user_dao.get_user(login.username)
-        else:
-            return None
-
-    def login(self, username, password):
-        with self._daos() as daos:
-            user_dao = daos.get_user_dao()
-            user = user_dao.get_user(username)
-            if self._validate_password(self, password, user.passhash):
-                pass
-            else:
-                raise LoginFailure(username)
-
-    def logout(self):
-        login = self._validate_session()
-        if login is not None:
-            login.valid = 0
-            with self._daos() as daos:
-                login_dao = daos.get_login_dao()
-                login_dao.save_login(login)
-
-    def _write_cookie_token(self, auth_token):
-        cherrypy.response.cookie[TOKEN_COOKIE] = auth_token
-        cherrypy.resposne.cookie[TOKEN_COOKIE]['expires'] = self._cookie_expr_secs
-
-    def _read_cookie_token(self):
-        if TOKEN_COOKIE in cherrypy.response.cookie:
-            return cherrypy.response.cookie[TOKEN_COOKIE].value
-        elif TOKEN_COOKIE in cherrypy.request.cookie:
-            return cherrypy.response.cookie[TOKEN_COOKIE].value
-        else:
-            return None
-    
-    def _create_login(self, user):
-        return Login(user.username, expiry_dt = datetime.now() + config.get_expiry_timedelta())
-
-    def _validate_session(self):
+    def validate_session(self):
         token = self._read_cookie_token()
         if token is None:
             return None
 
-        with self._daos() as daos:
-            login_dao = daos.get_login_dao()
-            login = login_dao.get_login(token)
-            if login.expiry_dt > datetime.now():
-                return login
-            else:
-                return None
+        login_dao = dao_factory.get_login_dao()
+        # TODO put stuff here
 
-    def _validate_password(self, password, passhash):
-        return bcrypt.verify(password, passhash)
 
-    def _hash_password(self, password):
-        return bcrypt.encrypt(password, rounds = self.config.get_password_rounds())
-
-    def _daos(self):
-        return self.config.get_daos()
-
-    def get_rights(self):
-        pass
 

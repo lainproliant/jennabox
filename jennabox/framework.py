@@ -14,32 +14,38 @@ def compose(*decorators):
     Compose multiple decorators into a single decorator.
     """
     def composed(f):
-        name = f.__name__
         for dec in decorators:
             f = dec(f)
-        f.__name__ = name
         return f
     return composed
 
 #--------------------------------------------------------------------
 def render(f):
-    def wrapper(*args, **kwargs):
-        renderer = f(*args, **kwargs)
-        renderer.assets(f.__self__.get_assets())
+    def wrapper(self, *args, **kwargs):
+        renderer = f(self, *args, **kwargs)
+        renderer.assets(self.get_assets())
         return str(renderer.render())
     return wrapper
 
 #--------------------------------------------------------------------
-page = compose(cherrypy.expose, render)
+page = compose(render, cherrypy.expose)
 
 #--------------------------------------------------------------------
 class BaseServer:
-    def __init__(self, assets):
+    def __init__(self, cherrypy_config, assets, auth):
+        self._cherrypy_config = cherrypy_config
         self._assets = assets
+        self._auth = auth
 
     def get_assets(self):
         return self._assets
 
+    def get_auth(self):
+        return self._auth
+
+    def get_cherrypy_config(self):
+        return self._cherrypy_config
+
     def start(self):
-        cherrypy.quickstart(self, '/', self.config.get_cherrypy_config())
+        cherrypy.quickstart(self, '/', self.get_cherrypy_config())
 

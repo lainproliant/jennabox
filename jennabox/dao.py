@@ -40,7 +40,7 @@ class DaoModule:
                         db.execute(infile.read())
             cherrypy.thread_data.db_conn = sqlite3.connect(sqlite_file)
         return cherrypy.thread_data.db_conn
-
+    
     @provide
     def dao_factory(self, injector):
         return SqliteDaoFactory(injector)
