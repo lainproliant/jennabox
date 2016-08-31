@@ -18,7 +18,7 @@ class MarkupFactory:
 
     def link(self, title, href):
         return html.a(title, href=href)
-    
+
     def text_field(self, name, label, value = None, placeholder = None):
         return [
             self.label(name, label),
@@ -30,7 +30,7 @@ class MarkupFactory:
             self.label(name, label),
             self.password_input(name, placeholder)
         ]
-    
+
     def label(self, name, label):
         return html.label({'for': name, 'class': 'label'})(label)
 
@@ -49,13 +49,25 @@ class MarkupFactory:
         return password_element
 
     def submit_button(self, label = None):
-        button = html.button({'class': 'btn-submit'})(type = 'submit')
+        button = html.button({'class': 'btn-default'})(type = 'submit')
         if label is not None:
             button(label)
         return button
 
+    def button(self, label, action, lefticon = None, righticon = None):
+        button = html.a(href = action)({'class': 'btn-default'})
+        if lefticon is not None:
+            button(self.icon(lefticon))
+        button(label)
+        if righticon is not None:
+            button(self.icon(righticon))
+        return button
+
     def icon(self, name, classes = []):
         return html.i({'class': ' '.join(['fa', 'fa-' + name] + classes)})
+
+    def error(self, message):
+        return html.div({'class': 'row error-box'})(self.icon('times-circle'), message)
 
 #--------------------------------------------------------------------
 markup = MarkupFactory()

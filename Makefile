@@ -8,6 +8,8 @@ all: copy-code copy-font-awesome copy-minimal-css copy-jennabox-assets compile-j
 copy-code:
 	mkdir -p $(OUTPUT)
 	cp -r jennabox $(OUTPUT)/jennabox
+	cp logging.ini $(OUTPUT)/
+	cp jennabox-ddl.sql $(OUTPUT)/
 
 copy-font-awesome:
 	mkdir -p $(ASSETS_OUT)/font-awesome

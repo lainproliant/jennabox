@@ -7,6 +7,7 @@
 #--------------------------------------------------------------------
 
 import cherrypy
+from xeno import inject
 
 #--------------------------------------------------------------------
 def compose(*decorators):
@@ -23,7 +24,8 @@ def compose(*decorators):
 def render(f):
     def wrapper(self, *args, **kwargs):
         renderer = f(self, *args, **kwargs)
-        renderer.assets(self.get_assets())
+        self.injector.inject(renderer)
+        renderer.assets(self.assets)
         return str(renderer.render())
     return wrapper
 
@@ -32,20 +34,21 @@ page = compose(render, cherrypy.expose)
 
 #--------------------------------------------------------------------
 class BaseServer:
-    def __init__(self, cherrypy_config, assets, auth):
-        self._cherrypy_config = cherrypy_config
-        self._assets = assets
-        self._auth = auth
+    @inject
+    def inject_deps(self, injector, cherrypy_config, auth, assets):
+        self.injector = injector
+        self.cherrypy_config = cherrypy_config
+        self.auth = auth
+        self.assets = assets
 
-    def get_assets(self):
-        return self._assets
+    @inject
+    def set_auth(self, auth):
+        self.auth = auth
 
-    def get_auth(self):
-        return self._auth
-
-    def get_cherrypy_config(self):
-        return self._cherrypy_config
+    @inject
+    def set_cherrypy_config(self, cherrypy_config):
+        self.cherrypy_config = cherrypy_config
 
     def start(self):
-        cherrypy.quickstart(self, '/', self.get_cherrypy_config())
+        cherrypy.quickstart(self, '/', self.cherrypy_config)
 

@@ -10,15 +10,15 @@ import uuid
 
 #--------------------------------------------------------------------
 class User:
-    def __init__(self, username, passhash, rights = None):
+    def __init__(self, username, passhash = None, rights = None):
         self.username = username
         self.passhash = passhash
         self.rights = rights or []
 
 #--------------------------------------------------------------------
 class Login:
-    def __init__(self, username, token = None, expiry_dt = None):
+    def __init__(self, username, expiry_dt, token = None):
         self.username = username
-        self.token = token or uuid.uuid4()
         self.expiry_dt = expiry_dt
+        self.token = token or uuid.uuid4().urn[9:]
 

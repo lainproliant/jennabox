@@ -4,10 +4,31 @@
 .sz(@height, @font-size) {
    height: @height;
    font-size: @font-size;
+   line-height: @height;
 }
 
 .sz-normal {
    .sz(24px, 14px);
+}
+
+.sz-large {
+   .sz(40px, 24px);
+}
+
+.color-box(@color, @bkg-color) {
+   color: @color;
+   background: @bkg-color;
+   vertical-align: middle;
+   padding-left: 10px;
+   .sz-large;
+}
+
+header a {
+   text-decoration: none;
+
+   &:hover {
+      text-decoration: none;
+   }
 }
 
 /*--------------------------------------------------------------------
@@ -38,10 +59,13 @@
  * Button Styles
  */
 .btn(@color, @bkg-color, @hover-color, @hover-bkg-color, @hover-halo-color) {
+   display: inline-block;
+
    &:hover {
       color: @hover-color;
       background: @hover-bkg-color;
       box-shadow: 0 0 1em @hover-halo-color;
+      text-decoration: none;
    }
 
    padding-left: 4px;
@@ -50,10 +74,11 @@
    color: @color;
    background: @bkg-color;
    transition: all 0.3s ease 0s;
+   text-decoration: none;
    .sz-normal;
 }
 
-.btn-submit {
+.btn-default {
    .btn(white, black, black, white, purple);
 }
 
@@ -71,4 +96,7 @@
    background-size: cover;
 }
 
+.error-box {
+   .color-box(white, red);
+}
 
