@@ -23,6 +23,7 @@ def compose(*decorators):
 #--------------------------------------------------------------------
 def render(f):
     def wrapper(self, *args, **kwargs):
+        self.before()
         renderer = f(self, *args, **kwargs)
         self.injector.inject(renderer)
         renderer.assets(self.assets)
@@ -51,4 +52,7 @@ class BaseServer:
 
     def start(self):
         cherrypy.quickstart(self, '/', self.cherrypy_config)
+
+    def before(self):
+        pass
 

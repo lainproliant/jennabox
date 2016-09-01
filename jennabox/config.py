@@ -13,7 +13,7 @@ import os
 
 from xeno import *
 from .auth import random_password
-from .domain import User
+from .domain import *
 
 #--------------------------------------------------------------------
 class ServerModule:
@@ -58,7 +58,9 @@ class ServerModule:
         if admin is None:
             log.warn('No admin user exists.  Creating now...')
             password = random_password()
-            user = User('admin', rights = ['admin'])
+            user = User('admin',
+                rights = [UserRight.ADMIN],
+                attributes = [UserAttribute.PASSWORD_RESET_REQUIRED])
             auth.save_user(user, password)
             log.warn('Admin user created with initial password %s, please change!' % password)
             admin = user_dao.get('admin')

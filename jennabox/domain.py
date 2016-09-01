@@ -7,15 +7,42 @@
 #--------------------------------------------------------------------
 
 import uuid
+from xenum import xenum
+
+#--------------------------------------------------------------------
+@xenum
+class UserRight:
+    ADMIN                       = 1
+    USER                        = 2
+    UPLOAD                      = 3
+
+#--------------------------------------------------------------------
+@xenum
+class UserAttribute:
+    PASSWORD_RESET_REQUIRED     = 1
 
 #--------------------------------------------------------------------
 class User:
     def __init__(self, username, passhash = None, rights = None,
-                 attributes = None)
+                 attributes = None):
         self.username = username
         self.passhash = passhash
         self.rights = set(rights or set())
         self.attributes = set(attributes or set())
+
+    def add_attribute(self, attr):
+        self.attributes.add(attr)
+
+    def remove_attribute(self, attr):
+        if attr in self.attributes:
+            self.attributes.remove(attr)
+
+    def add_right(self, right):
+        self.rights.add(right)
+
+    def remove_right(self, right):
+        if right in self.rights:
+            self.rights.remove(right)
 
 #--------------------------------------------------------------------
 class Login:
@@ -23,4 +50,11 @@ class Login:
         self.username = username
         self.expiry_dt = expiry_dt
         self.token = token or uuid.uuid4().urn[9:]
+
+#--------------------------------------------------------------------
+class Image:
+    def __init__(self, image_id = None, tags = None, attributes = None):
+        self.image_id = (image_id or uuid.uuid4().urn[9:])
+        self.tags = (tags or [])
+        self.attributes = (attributes or [])
 
