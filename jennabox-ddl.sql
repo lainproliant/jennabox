@@ -9,6 +9,12 @@ create table user_rights (
    foreign key (username) references users(username)
 );
 
+create table user_attributes (
+   username          text not null,
+   attribute         text not null,
+   foreign key (username) references users(username)
+);
+
 create table images (
    id                string primary key not null,
    owner             text not null

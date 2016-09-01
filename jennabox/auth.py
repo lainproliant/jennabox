@@ -6,7 +6,6 @@
 # Date: Tuesday, August 23rd 2016
 #--------------------------------------------------------------------
 
-import bcrypt
 import cherrypy
 import random
 import string

@@ -10,10 +10,12 @@ import uuid
 
 #--------------------------------------------------------------------
 class User:
-    def __init__(self, username, passhash = None, rights = None):
+    def __init__(self, username, passhash = None, rights = None,
+                 attributes = None)
         self.username = username
         self.passhash = passhash
-        self.rights = rights or []
+        self.rights = set(rights or set())
+        self.attributes = set(attributes or set())
 
 #--------------------------------------------------------------------
 class Login:

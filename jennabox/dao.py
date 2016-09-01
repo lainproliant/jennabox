@@ -105,7 +105,13 @@ class SqliteUserDao:
         for row in c.fetchall():
             username, right = row
             if username in user_map:
-                user_map[username].rights.append(right)
+                user_map[username].rights.add(right)
+
+        c.execute('select * from user_attributes where username in (%s)' % (','.join('?' * len(usernames))), usernames)
+        for row in c.fetchall():
+            username, attribute = row
+            if username in user_map:
+                user_map[username].attributes.add(right)
 
         return user_map.values()
 
@@ -113,7 +119,10 @@ class SqliteUserDao:
         c = self.db.cursor()
         c.execute('insert or replace into users (username, passhash) values (?, ?)', (user.username, user.passhash))
         c.execute('delete from user_rights where username = ?', (user.username,))
+        c.execute('delete from user_attributes where username = ?', (user.username,))
         for right in user.rights:
             c.execute('insert into user_rights (username, app_right) values (?, ?)', (user.username, right))
+        for attribute in user.attributes:
+            c.execute('insert into user_attributes (username, attribute) values (?, ?)', (user.username, attribute))
         self.db.commit()
 
