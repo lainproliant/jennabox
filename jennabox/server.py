@@ -27,8 +27,8 @@ class JennaBoxServer(BaseServer):
         return Page(ImageSearch())
 
     @page
-    def search(self, query):
-        return Page(ImageSearch(query))
+    def search(self, query, page = 0):
+        return Page(ImageSearch(query, page))
 
     @page
     def login_page(self):
@@ -38,12 +38,19 @@ class JennaBoxServer(BaseServer):
     def upload_page(self):
         self.auth.require_right(UserRight.UPLOAD)
         return Page(ImageUploadForm())
-        pass
 
     @page
-    @
-    def upload(self):
-        pass
+    def upload(self, image_file, tags):
+        self.auth.require_right(UserRight.UPLOAD)
+        user = self.auth.get_current_user()
+        user_tag = 'user:%s' % user.username
+        image_dao = self.dao_factory.get_image_dao()
+        image = image_dao.save_new_image(image_file, list(tags.split()) + [user_tag])
+        raise cherrypy.HTTPRedirect('/view?id=%s' % image.id)
+    
+    @page
+    def view(self, id):
+        return Page(ImageView(id))
 
     @page
     def login(self, username, password):

@@ -19,18 +19,33 @@ from .domain import *
 class ServerModule:
     @provide
     @singleton
-    def assets(self):
+    def global_assets(self):
         return [
             '/static/font-awesome/css/font-awesome.css',
             '/static/bootstrap/css/bootstrap.css',
             '/static/bootstrap/css/bootstrap-theme.css',
             '/static/css/jennabox.css',
             '/static/bootstrap/js/bootstrap.js'
+            '/static/jquery/jquery.js'
         ]
     
     @provide
     @singleton
-    def cherrypy_config(self):
+    def image_dir(self):
+        return '/opt/jennabox/images'
+
+    @provide
+    @singleton
+    def image_page_size(self):
+        return 12
+
+    @provide
+    @singleton
+    def cherrypy_config(self, image_dir):
+        cherrypy.config.update({
+            'server.socket_host':   '0.0.0.0'
+        })
+
         return {
             '/': {
                 'tools.staticdir.root':     os.path.abspath(os.getcwd())
@@ -41,7 +56,7 @@ class ServerModule:
             },
             '/images': {
                 'tools.staticdir.on':       True,
-                'tools.staticdir.dir':      '/opt/jennabox/images'
+                'tools.staticdir.dir':      image_dir
             }
         }
 

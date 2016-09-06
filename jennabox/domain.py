@@ -7,6 +7,7 @@
 #--------------------------------------------------------------------
 
 import uuid
+from datetime import datetime
 from xenum import xenum
 
 #--------------------------------------------------------------------
@@ -70,8 +71,25 @@ class Login:
 
 #--------------------------------------------------------------------
 class Image:
-    def __init__(self, image_id = None, tags = None, attributes = None):
-        self.image_id = (image_id or uuid.uuid4().urn[9:])
-        self.tags = (tags or [])
-        self.attributes = (attributes or [])
+    MIME_EXT_MAP = {
+        'image/jpeg':   '.jpg',
+        'image/png':    '.png',
+        'image/gif':    '.gif',
+        'video/mp4':    '.gifv'
+    }
+
+    THUMB_RESIZE_TRANSFORM = '300x400>'
+
+    def __init__(self, id = None, mime_type = None, timestamp = None, tags = None, attributes = None):
+        if not mime_type in Image.MIME_EXT_MAP:
+            raise ValueError('Invalid Image mime_type: %s' % mime_type)
+
+        self.id = (id or uuid.uuid4().urn[9:])
+        self.mime_type = mime_type
+        self.tags = set(tags or [])
+        self.attributes = set(attributes or [])
+        self.timestamp = timestamp or datetime.now()
+
+    def get_filename(self):
+        return self.id + Image.MIME_EXT_MAP[self.mime_type]
 

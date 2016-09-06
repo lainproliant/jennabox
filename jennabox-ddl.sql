@@ -17,12 +17,15 @@ create table user_attributes (
 
 create table images (
    id                string primary key not null,
-   owner             text not null
+   mime_type         string not null,
+   ts                timestamp not null
 );
 
 create table image_tags (
-   image_id          string not null,
-   tag               string not null
+   id                string not null,
+   tag               string not null,
+   foreign key (id) references images(id)
 );
+create index image_id_idx on image_tags(id);
 create index image_tag_idx on image_tags (tag);
 

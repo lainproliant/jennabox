@@ -6,12 +6,14 @@
 # Date: Tuesday, August 23rd 2016
 #--------------------------------------------------------------------
 
-from indent_tools import html
-from .renderer import Renderer, PageRenderer
-from .markup import markup
+import urllib
+
 from .auth import LoginFailure
 from .domain import *
+from .framework import Renderer, HTML, AssetList
+from .markup import markup
 
+from indenti import html
 from xeno import inject, provide
 
 #--------------------------------------------------------------------
@@ -24,11 +26,23 @@ class ContentModule:
     def nav(self, injector):
         return injector.create(LeftNav)
 
+    @provide
+    def assets(self, global_assets):
+        return AssetList().assets(global_assets)
+
 #--------------------------------------------------------------------
-class Page(PageRenderer):
-    def __init__(self, content):
+class Page(Renderer):
+    def __init__(self, content, title = "JennaBox <3"):
         super().__init__()
-        self.content = content
+        self._content = content
+        self._title = title
+    
+    def render(self):
+        return html.html().doctype('html')(
+            html.head(
+                html.title(self._title)),
+                self.assets.render(),
+                self.body())
 
     def body(self):
         return [
@@ -41,16 +55,11 @@ class Page(PageRenderer):
         ]
 
     @inject
-    def set_header(self, header):
-        self.header = header
-    
-    @inject
-    def set_nav(self, nav):
+    def inject_deps(self, injector, assets, nav, header):
+        self.assets = assets
         self.nav = nav
-    
-    @inject
-    def inject_content_deps(self, injector):
-        injector.inject(self.content)
+        self.header = header
+        injector.inject(self._content)
 
 #--------------------------------------------------------------------
 class Header(Renderer):
@@ -85,25 +94,73 @@ class Header(Renderer):
 
 #--------------------------------------------------------------------
 class ImageSearch(Renderer):
-    def __init__(self, query = ''):
+    def __init__(self, query = '', page = 0):
+        self.tags = []
+        self.ntags = []
+        self.page = page
         self.query = query
-
+        
+        for tag in query.split():
+            if tag.startswith('-'):
+                self.ntags.append(tag[1:])
+            else:
+                self.tags.append(tag)
+    
     def render(self):
-        if not self.user:
-            return self.render_guest_search()
-        else:
-            return self.render_user_search()
+        image_dao = self.dao_factory.get_image_dao()
+        
+        # Non logged in users must only see images with 'public'
+        if not self.auth.has_right(UserRight.USER):
+            self.tags.append('public')
+            self.ntags = list(filter(lambda x: x != 'public', self.ntags))
 
-    def render_guest_search(self):
-        return EmptyPage().render()
+        images, count = image_dao.find(self.tags, self.ntags,
+                                       self.image_page_size, self.image_page_size * self.page)
 
-    def render_user_search(self):
-        return EmptyPage().render()
+        image_rows = []
+        row = None
+        for x in range(len(images)):
+            image = images[x]
+            if row is None or x % 3 == 0:
+                row = html.div({'class': 'row'})
+                image_rows.append(row)
 
+            row(
+                html.div({'class': 'col-3 mini-image'})(
+                    html.a(href = '/view?id=%s' % image.id)(
+                        html.img(src = '/images/mini/' + image.get_filename()))))
+        
+        row = html.div({'class': 'row'})
+        image_rows.append(row)
+        for x in range(int(count / (self.image_page_size or 1))):
+            row(markup.button('%d' % x, '/search?' + urllib.urlencode({
+                'query':    self.query,
+                'page':     self.page})))
+        
+        return image_rows
+        
     @inject
-    def inject_deps(self, auth, dao_factory):
+    def inject_deps(self, auth, dao_factory, image_page_size):
         self.user = auth.get_current_user()
         self.auth = auth
+        self.dao_factory = dao_factory
+        self.image_page_size = image_page_size
+
+#--------------------------------------------------------------------
+class ImageView(Renderer):
+    def __init__(self, id):
+        self.id = id
+
+    def render(self):
+        image_dao = self.dao_factory.get_image_dao()
+        image = image_dao.get(self.id)
+        if not image:
+            raise cherrypy.NotFound()
+
+        return html.img(src = '/images/' + image.get_filename())
+
+    @inject
+    def inject_deps(self, dao_factory):
         self.dao_factory = dao_factory
 
 #--------------------------------------------------------------------
@@ -141,11 +198,17 @@ class LoginForm(Renderer):
 #--------------------------------------------------------------------
 class ImageUploadForm(Renderer):
     def render(self):
-        return html.form(action='/upload', method='post', enctype='multipart/form-data')(
+        form = html.form(action='/upload', method='post', enctype='multipart/form-data')(
             html.div({'class': 'row'})(
-                html.input(type = 'file', name = 'file')),
+                html.input(id='image_selector', type = 'file', name = 'image_file')),
             html.div({'class': 'row'})(
-                markup.text_field('tags', 'Tags:', placeholder = 'Enter space-delimited tags')))
+                markup.text_field('tags', 'Tags:', placeholder = 'Enter space-delimited tags')),
+            html.div({'class': 'row'})(
+                html.img(id = 'upload-preview', src='/static/images/placeholder.png')),
+            html.div({'class': 'row'})(
+                markup.submit_button('Upload Image')(disabled = None)))
+
+        return [markup.js('/static/js/image_upload.js'), form]
 
 #--------------------------------------------------------------------
 class ChangePasswordForm:

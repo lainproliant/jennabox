@@ -6,7 +6,7 @@
 # Date: Tuesday, August 23rd 2016
 #--------------------------------------------------------------------
 
-from indent_tools import html
+from indenti import html
 
 #--------------------------------------------------------------------
 class MarkupFactory:

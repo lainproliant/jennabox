@@ -10,6 +10,7 @@ import cherrypy
 import collections
 import os
 import sqlite3
+import wand.image
 
 from datetime import datetime
 from xeno import *
@@ -55,6 +56,9 @@ class SqliteDaoFactory:
     def get_user_dao(self):
         return self.injector.create(SqliteUserDao)
 
+    def get_image_dao(self):
+        return self.injector.create(SqliteImageDao)
+
     def get_login_dao(self):
         return self.login_dao
 
@@ -89,7 +93,7 @@ class SqliteUserDao:
     def get(self, username):
         users = self.get_users([username])
         if users:
-            return list(users)[0]
+            return users[0]
         else:
             return None
 
@@ -113,7 +117,7 @@ class SqliteUserDao:
             if username in user_map:
                 user_map[username].attributes.add(UserAttribute.by_name(attribute))
 
-        return user_map.values()
+        return list(user_map.values())
 
     def put(self, user):
         c = self.db.cursor()
@@ -125,4 +129,110 @@ class SqliteUserDao:
         for attribute in user.attributes:
             c.execute('insert into user_attributes (username, attribute) values (?, ?)', (user.username, str(attribute)))
         self.db.commit()
+
+#--------------------------------------------------------------------
+class SqliteImageDao:
+    def __init__(self, db_conn, image_dir, image_page_size):
+        self.db = db_conn
+        self.image_dir = image_dir
+        self.image_page_size = image_page_size
+        
+        mini_dir = os.path.join(self.image_dir, 'mini')
+        if not os.path.exists(mini_dir):
+            os.makedirs(mini_dir)
+
+    def save_new_image(self, image_file, tags):
+        image = Image(mime_type = str(image_file.content_type), tags = tags)
+        image_filename = os.path.join(self.image_dir, image.get_filename())
+        mini_filename = os.path.join(self.image_dir, 'mini', image.get_filename())
+
+        with open(image_filename, 'wb') as outfile:
+            while True:
+                data = image_file.file.read(8192)
+                if not data:
+                    break
+                outfile.write(data)
+    
+        # TODO: this probably can't actually handle gifv
+        with wand.image.Image(filename = image_filename) as wand_image:
+            wand_image.transform(resize = Image.THUMB_RESIZE_TRANSFORM)
+            wand_image.save(filename = mini_filename)
+
+        self.save_image(image)
+        return image
+
+    def save_image(self, image):
+        c = self.db.cursor()
+        c.execute('insert or replace into images(id, mime_type, ts) values(?, ?, ?)', (image.id, image.mime_type, image.timestamp))
+        c.execute('delete from image_tags where id = ?', (image.id,))
+        for tag in image.tags:
+            c.execute('insert into image_tags (id, tag) values(?, ?)', (image.id, tag))
+        self.db.commit()
+
+    def find(self, tags, ntags, limit = None, offset = 0):
+        if limit is None:
+            limit = self.image_page_size
+
+        c = self.db.cursor()
+        count = 0
+        
+        if tags and ntags:
+            c.execute('select count(*) from images where id in (select distinct id from image_tags where tag in (%s)) and id not in (select distinct id from image_tags where tag in (%s))' % (
+                ','.join('?' * len(tags)),
+                ','.join('?' * len(ntags))), tags + ntags)
+            count = c.fetchone()[0]
+            c.execute('select id from images where id in (select distinct id from image_tags where tag in (%s)) and id not in (select distinct id from image_tags where tag in (%s)) order by datetime(images.ts) desc limit %d offset %d' % (
+                ','.join('?' * len(tags)),
+                ','.join('?' * len(ntags)),
+                limit, offset), tags + ntags)
+        elif tags:
+            c.execute('select count(distinct id) from image_tags where tag in (%s)' % (
+                ','.join('?' * len(tags))), tags)
+            count = c.fetchone()[0]
+            c.execute('select id from images where id in (select distinct id from image_tags where tag in (%s)) order by datetime(images.ts) desc limit %d offset %d' % (
+                ','.join('?' * len(tags)),
+                limit, offset), tags)
+
+        elif ntags:
+            c.execute('select count(*) from images where id not in (select distinct id from image_tags where tag in (%s))' % (
+                ','.join('?' * len(ntags))), ntags)
+            count = c.fetchone()[0]
+            c.execute('select id from images where id not in (select id from image_tags where tag in (%s)) order by datetime(images.ts) desc limit %d offset %d' % (
+                ','.join('?' * len(ntags)),
+                limit, offset), ntags)
+
+        else:
+            c.execute('select count(*) from images')
+            count = c.fetchone()[0]
+            c.execute('select images.id from images order by datetime(images.ts) desc limit %d offset %d' % (
+                limit, offset))
+
+        return self.get_images([x[0] for x in c.fetchall()]), count
+    
+    def get(self, image_id):
+       images = self.get_images([image_id])
+       if images:
+           return images[0]
+       else:
+           return None
+
+    def get_images(self, image_ids):
+        if not image_ids:
+            return []
+
+        c = self.db.cursor()
+        c.execute('select * from images where id in (%s)' % (','.join('?' * len(image_ids))), image_ids)
+        image_map = collections.OrderedDict()
+        for row in c.fetchall():
+            image = Image(*row)
+            image_map[image.id] = image
+
+        c.execute('select * from image_tags where id in (%s)' % (','.join('?' * len(image_ids))), image_ids)
+
+        for row in c.fetchall():
+            id, tag = row
+            if id in image_map:
+                image_map[id].tags.add(tag)
+
+        return list(image_map.values())
 
