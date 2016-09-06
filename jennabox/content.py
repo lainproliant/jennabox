@@ -17,9 +17,8 @@ from xeno import inject, provide
 #--------------------------------------------------------------------
 class ContentModule:
     @provide
-    def header(self, auth, dao_factory):
-        user = auth.get_current_user()
-        return Header(user) 
+    def header(self, auth):
+        return Header(auth) 
 
     @provide
     def nav(self, injector):
@@ -32,12 +31,15 @@ class Page(PageRenderer):
         self.content = content
 
     def body(self):
-        return html.div({'class': 'container'})(
+        return [
             self.header.render(),
-            html.div({'class': 'row'})(
-                html.div(id = 'nav')({'class': 'col-2 nav-container'})(self.nav.render()),
-                html.div(id = 'content')({'class': 'col-10 content-container'})(self.content.render())))
-    
+            html.div({'class': 'container'})(
+                self.header.render(),
+                html.div({'class': 'row'})(
+                    html.div(id = 'nav')({'class': 'col-2 nav-container'})(self.nav.render()),
+                    html.div(id = 'content')({'class': 'col-10 content-container'})(self.content.render())))
+        ]
+
     @inject
     def set_header(self, header):
         self.header = header
@@ -52,8 +54,9 @@ class Page(PageRenderer):
 
 #--------------------------------------------------------------------
 class Header(Renderer):
-    def __init__(self, user):
-        self.user = user
+    def __init__(self, auth):
+        self.auth = auth
+        self.user = auth.get_current_user()
 
     def render(self):
         login_elements = []
@@ -70,13 +73,15 @@ class Header(Renderer):
             ]
 
         return html.header(
-            html.div({'class': 'row'})(
-                html.div({'class': 'col-6'})(
-                    html.a(href='/')(
-                        html.h1(
-                            markup.icon('camera-retro'),
-                            'JennaBox'))),
-                html.div({'class': 'col-6'})(html.div({'class': 'float-right login-box'})(login_elements))))
+            html.nav({'class': 'navbar navbar-inverse navbar-fixed-top'})(
+                html.button({'type': 'button', 'class': 'navbar-toggle collapsed', 'data-toggle': 'collapse',
+                             'data-target': 'navbar', 'aria-expanded': 'false', 'aria-controls': 'navbar'}),
+                html.a({'class': 'navbar-brand', 'href': '/'})(markup.icon('camera-retro'), 'JennaBox'),
+            html.div({'id': 'navbar', 'class': 'navbar-collapse collapse', 'aria-expanded': 'false', 'style': 'height: 1px;'})(
+                html.ul({'class': 'nav navbar-nav navbar-right'})(
+                    [html.li(html.a(href = action.href)(action.label)) for action in self.auth.get_actions()]),
+                html.form({'class': 'navbar-form navbar-right'})(
+                    markup.text_input('query', placeholder='Search with tags')))))
 
 #--------------------------------------------------------------------
 class ImageSearch(Renderer):

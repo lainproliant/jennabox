@@ -13,6 +13,7 @@ import string
 from passlib.hash import bcrypt
 from datetime import datetime, timedelta
 from xeno import *
+from xenum import *
 
 from .domain import *
 
@@ -59,7 +60,6 @@ class AuthProvider:
         self.dao_factory = dao_factory
         self.expiry_timedelta = expiry_timedelta
         self.hash_rounds = hash_rounds
-        self.user = None
 
     @inject
     def inject_log(self, log):
@@ -113,12 +113,10 @@ class AuthProvider:
             return login
 
     def get_current_user(self):
-        if self.user is None:
-            login = self.validate_login()
-            if login is not None:
-                user_dao = self.dao_factory.get_user_dao()
-                self.user = user_dao.get(login.username)
-        return self.user
+        login = self.validate_login()
+        if login is not None:
+            user_dao = self.dao_factory.get_user_dao()
+            return user_dao.get(login.username)
     
     def has_right(self, right):
         user = self.get_current_user()

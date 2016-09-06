@@ -1,6 +1,6 @@
 [submodule "static/font-awesome"]
 	path = assets/font-awesome
 	url = https://github.com/FortAwesome/Font-Awesome
-[submodule "static/minimal-css"]
-	path = assets/minimal-css
-	url = https://github.com/billyshall/minimalcss
+[submodule "assets/bootstrap"]
+	path = assets/bootstrap
+	url = https://github.com/twbs/bootstrap

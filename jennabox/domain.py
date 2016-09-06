@@ -12,14 +12,31 @@ from xenum import xenum
 #--------------------------------------------------------------------
 @xenum
 class UserRight:
+    GUEST                       = 0
     ADMIN                       = 1
     USER                        = 2
     UPLOAD                      = 3
+
+    def __init__(self):
+        pass
+
+    def __call__(self, f):
+        def decorate(server, *args, **kwargs):
+            server.auth.require_right(self)
+            return f(*args, **kwargs)
 
 #--------------------------------------------------------------------
 @xenum
 class UserAttribute:
     PASSWORD_RESET_REQUIRED     = 1
+
+#--------------------------------------------------------------------
+@xenum
+class Action:
+    def __init__(self, label, href, rights = None):
+        self.label = label
+        self.href = href
+        self.rights = rights or []
 
 #--------------------------------------------------------------------
 class User:

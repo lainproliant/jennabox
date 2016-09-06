@@ -3,7 +3,7 @@ ASSETS_IN=assets
 ASSETS_OUT=$(OUTPUT)/static
 LESSC=lessc
 
-all: copy-code copy-font-awesome copy-minimal-css copy-jennabox-assets compile-jennabox-less
+all: copy-code copy-font-awesome copy-bootstrap copy-jennabox-assets compile-jennabox-less
 
 copy-code:
 	mkdir -p $(OUTPUT)
@@ -16,9 +16,8 @@ copy-font-awesome:
 	cp -r $(ASSETS_IN)/font-awesome/css $(ASSETS_OUT)/font-awesome/css
 	cp -r $(ASSETS_IN)/font-awesome/fonts $(ASSETS_OUT)/font-awesome/fonts
 
-copy-minimal-css:
-	mkdir -p $(ASSETS_OUT)/css
-	cp -r $(ASSETS_IN)/minimal-css/minimal.css $(ASSETS_OUT)/css/minimal.css
+copy-bootstrap:
+	cp -r $(ASSETS_IN)/bootstrap/dist $(ASSETS_OUT)/bootstrap
 
 copy-jennabox-assets:
 	mkdir -p $(ASSETS_OUT)/js $(ASSETS_OUT)/images

@@ -49,13 +49,13 @@ class MarkupFactory:
         return password_element
 
     def submit_button(self, label = None):
-        button = html.button({'class': 'btn-default'})(type = 'submit')
+        button = html.button({'class': 'btn btn-inverse'})(type = 'submit')
         if label is not None:
             button(label)
         return button
 
     def button(self, label, action, lefticon = None, righticon = None):
-        button = html.a(href = action)({'class': 'btn-default'})
+        button = html.a(href = action)({'class': 'btn'})
         if lefticon is not None:
             button(self.icon(lefticon))
         button(label)

@@ -22,10 +22,12 @@ class ServerModule:
     def assets(self):
         return [
             '/static/font-awesome/css/font-awesome.css',
-            '/static/css/minimal.css',
-            '/static/css/jennabox.css'
+            '/static/bootstrap/css/bootstrap.css',
+            '/static/bootstrap/css/bootstrap-theme.css',
+            '/static/css/jennabox.css',
+            '/static/bootstrap/js/bootstrap.js'
         ]
-
+    
     @provide
     @singleton
     def cherrypy_config(self):
@@ -48,7 +50,6 @@ class ServerModule:
     def log(self):
         logging.config.fileConfig('logging.ini')
         return logging.getLogger()
-
 
     @provide
     @singleton

@@ -41,6 +41,7 @@ class JennaBoxServer(BaseServer):
         pass
 
     @page
+    @
     def upload(self):
         pass
 
@@ -51,11 +52,13 @@ class JennaBoxServer(BaseServer):
         except LoginFailure as e:
             return Page(LoginForm(failed = True))
     @page
+    @UserRight.USER()
     def change_password_page(self):
         self.auth.require_right(UserRight.USER)
         return Page(ChangePasswordForm())
 
     @page
+    @UserRight.USER()
     def change_password(self, old_password, new_password_A, new_password_B):
         # TODO: Make this fail more gracefully, like on the front end maybe.
         self.auth.require_right(UserRight.USER)
@@ -70,10 +73,6 @@ class JennaBoxServer(BaseServer):
     @inject
     def require_admin_user(self, admin_user):
         pass
-
-    @inject
-    def inject_auth(self, auth):
-        self.auth = auth
 
     def before(self):
         user = self.auth.get_current_user()

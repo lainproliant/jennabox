@@ -75,4 +75,5 @@ class PageRenderer(Renderer):
                  html.title(self._title)),
                  [markup.js(x) for x in self._js_files],
                  [markup.css(x) for x in self._css_files],
+
                 self.body())
