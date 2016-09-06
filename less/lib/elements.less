@@ -61,11 +61,21 @@ header a {
 .btn(@color, @bkg-color, @hover-color, @hover-bkg-color, @hover-halo-color) {
    display: inline-block;
 
-   &:hover {
+   &:disabled {
+      color: #888;
+      background: #444;
+   }
+
+   &:active:hover {
       color: @hover-color;
       background: @hover-bkg-color;
       box-shadow: 0 0 1em @hover-halo-color;
       text-decoration: none;
+   }
+
+   &:disabled:hover {
+      color: #888;
+      background: #444;
    }
 
    padding-left: 4px;

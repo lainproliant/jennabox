@@ -1,0 +1,129 @@
+/*--------------------------------------------------------------------
+ * Base Styles
+ */
+.sz-normal {
+  height: 24px;
+  font-size: 14px;
+  line-height: 24px;
+}
+.sz-large {
+  height: 40px;
+  font-size: 24px;
+  line-height: 40px;
+}
+header a {
+  text-decoration: none;
+}
+header a:hover {
+  text-decoration: none;
+}
+/*--------------------------------------------------------------------
+ * Input Styles
+ */
+.field {
+  padding-top: 2px;
+  padding-bottom: 2px;
+}
+.text-input {
+  padding-top: 2px;
+  padding-bottom: 2px;
+  height: 24px;
+  font-size: 14px;
+  line-height: 24px;
+}
+.password-input {
+  padding-top: 2px;
+  padding-bottom: 2px;
+  height: 24px;
+  font-size: 14px;
+  line-height: 24px;
+}
+.label {
+  height: 24px;
+  font-size: 14px;
+  line-height: 24px;
+  display: inline-block;
+  min-width: 100px;
+}
+/*--------------------------------------------------------------------
+ * Button Styles
+ */
+.btn-default {
+  display: inline-block;
+  padding-left: 4px;
+  padding-right: 4px;
+  border: 1px solid black;
+  color: white;
+  background: black;
+  transition: all 0.3s ease 0s;
+  text-decoration: none;
+  height: 24px;
+  font-size: 14px;
+  line-height: 24px;
+}
+.btn-default:disabled {
+  color: #888;
+  background: #444;
+}
+.btn-default:active:hover {
+  color: black;
+  background: white;
+  box-shadow: 0 0 1em purple;
+  text-decoration: none;
+}
+.btn-default:disabled:hover {
+  color: #888;
+  background: #444;
+}
+/*--------------------------------------------------------------------
+ * Layout Elements
+ */
+.error-box {
+  color: white;
+  background: red;
+  vertical-align: middle;
+  padding-left: 10px;
+  height: 40px;
+  font-size: 24px;
+  line-height: 40px;
+}
+header {
+  padding-top: 20px;
+  padding-bottom: 0px;
+}
+header h1 {
+  margin-bottom: 0px;
+}
+.container {
+  width: 1200px;
+}
+.intro-box {
+  padding: 20px 20px 250px 20px;
+  width: 650px;
+  background: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.3)), url('/static/images/jenna.jpg');
+  background-size: cover;
+}
+.intro-box * {
+  color: white;
+}
+.login-box {
+  padding: 10px;
+}
+.content-container {
+  border-left: 1px solid #ddd;
+  padding-left: 20px;
+}
+.nav-container {
+  width: 150px;
+  float: left;
+}
+.nav-container .search-form .text-input {
+  width: 120px;
+}
+.nav-container .search-form .search-button {
+  width: 25px;
+}
+#upload-preview {
+  max-width: 800px;
+  max-height: 600px;
+}
