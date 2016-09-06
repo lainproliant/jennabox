@@ -15,6 +15,7 @@ def main():
     for less_file in less_files:
         basename = os.path.splitext(os.path.basename(less_file))[0]
         css_file = os.path.join(CSS_OUTPUT_DIR, basename + '.css')
+        print('Compiling %s -> %s...' % (less_file, css_file))
         subprocess.check_call(['lessc', less_file, css_file])
 
 #---------------------------------------------------------------------

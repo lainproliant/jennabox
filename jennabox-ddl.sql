@@ -16,14 +16,14 @@ create table user_attributes (
 );
 
 create table images (
-   id                string primary key not null,
-   mime_type         string not null,
+   id                text primary key not null,
+   mime_type         text not null,
    ts                timestamp not null
 );
 
 create table image_tags (
-   id                string not null,
-   tag               string not null,
+   id                text not null,
+   tag               text not null,
    foreign key (id) references images(id)
 );
 create index image_id_idx on image_tags(id);

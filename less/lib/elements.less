@@ -1,0 +1,58 @@
+/*--------------------------------------------------------------------
+ * Base Style Overrides
+ */
+.form-control {
+   margin-bottom: 4px;
+}
+
+.navbar a {
+   color: #FFFFFF !important;
+
+   &:hover {
+      text-shadow: 0 0 1em purple !important;
+   }
+}
+
+.navbar-brand {
+   font-size: 26px;
+}
+
+/*--------------------------------------------------------------------
+ * Button Styles
+ */
+.btn(@color, @bkg-color, @hover-color, @hover-bkg-color) {
+   display: inline-block;
+
+   &:hover {
+      text-decoration: none;
+   }
+
+   &:hover:enabled {
+      color: @hover-color;
+      background: @hover-bkg-color;
+   }
+
+   border: 1px solid @bkg-color;
+   color: @color;
+   background: @bkg-color;
+   transition: all 0.3s ease 0s;
+   text-decoration: none;
+}
+
+.glow-btn(@color, @bkg-color, @hover-color, @hover-bkg-color, @hover-halo-color) {
+   .btn(@color, @bkg-color, @hover-color, @hover-bkg-color);
+
+   display: inline-block;
+
+   &:hover:enabled {
+      box-shadow: 0 0 1em @hover-halo-color;
+   }
+}
+
+.btn-inverse {
+   .glow-btn(white, black, black, white, purple);
+}
+
+.btn-current {
+   .btn(white, purple, white, purple);
+}

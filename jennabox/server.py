@@ -24,20 +24,20 @@ from .content import *
 class JennaBoxServer(BaseServer):
     @page
     def index(self):
-        return Page(ImageSearch())
+        return ImageSearch()
 
     @page
     def search(self, query, page = 0):
-        return Page(ImageSearch(query, page))
+        return ImageSearch(query, page)
 
     @page
     def login_page(self):
-        return Page(LoginForm())
+        return LoginPage()
 
     @page
     def upload_page(self):
         self.auth.require_right(UserRight.UPLOAD)
-        return Page(ImageUploadForm())
+        return ImageUploadPage()
 
     @page
     def upload(self, image_file, tags):
@@ -50,19 +50,19 @@ class JennaBoxServer(BaseServer):
     
     @page
     def view(self, id):
-        return Page(ImageView(id))
+        return ImageView(id)
 
     @page
     def login(self, username, password):
         try:
             self.auth.login(username, password)
         except LoginFailure as e:
-            return Page(LoginForm(failed = True))
+            return LoginPage(failed = True)
     @page
     @UserRight.USER()
     def change_password_page(self):
         self.auth.require_right(UserRight.USER)
-        return Page(ChangePasswordForm())
+        return ChangePasswordPage()
 
     @page
     @UserRight.USER()

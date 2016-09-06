@@ -8,36 +8,53 @@
 
 import uuid
 from datetime import datetime
-from xenum import xenum
+from xenum import xenum, sref, ctor
+
+from .markup import *
 
 #--------------------------------------------------------------------
 @xenum
 class UserRight:
-    GUEST                       = 0
-    ADMIN                       = 1
-    USER                        = 2
-    UPLOAD                      = 3
+    GUEST   = sref()
+    ADMIN   = sref()
+    USER    = sref()
+    UPLOAD  = sref()
 
-    def __init__(self):
-        pass
+    def __init__(self, enum):
+        self.enum = enum
 
     def __call__(self, f):
         def decorate(server, *args, **kwargs):
-            server.auth.require_right(self)
+            server.auth.require_right(self.enum)
             return f(*args, **kwargs)
 
 #--------------------------------------------------------------------
 @xenum
 class UserAttribute:
-    PASSWORD_RESET_REQUIRED     = 1
+    PASSWORD_RESET_REQUIRED = 1
 
 #--------------------------------------------------------------------
 @xenum
 class Action:
+    UPLOAD  = ctor(['Upload', markup.icon('upload')], '/upload_page', [UserRight.UPLOAD])
+    CPANEL  = ctor(['Control Panel', markup.icon('cog')], '/control_panel', [UserRight.ADMIN])
+
     def __init__(self, label, href, rights = None):
         self.label = label
         self.href = href
         self.rights = rights or []
+    
+    def is_available(self, auth):
+        for right in self.rights:
+            if not auth.has_right(right):
+                return False
+        return True
+
+    def __call__(self, f):
+        def decorate(server, *args, **kwargs):
+            for right in self.rights:
+                server.auth.require_right(right)
+            return f(*args, **kwargs)
 
 #--------------------------------------------------------------------
 class User:

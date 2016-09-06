@@ -84,6 +84,7 @@ class AuthProvider:
         login = self.validate_login()
         login_dao = self.dao_factory.get_login_dao()
         login_dao.drop(login.token)
+        cherrypy.thread_data.current_user = None
         raise cherrypy.HTTPRedirect('/')
 
     def change_password(self, old_password, new_password):
@@ -113,10 +114,15 @@ class AuthProvider:
             return login
 
     def get_current_user(self):
-        login = self.validate_login()
-        if login is not None:
-            user_dao = self.dao_factory.get_user_dao()
-            return user_dao.get(login.username)
+        if not hasattr(cherrypy.thread_data, 'current_user'):
+            login = self.validate_login()
+            if login is not None:
+                user_dao = self.dao_factory.get_user_dao()
+                cherrypy.thread_data.current_user = user_dao.get(login.username)
+            else:
+                return None
+
+        return cherrypy.thread_data.current_user
     
     def has_right(self, right):
         user = self.get_current_user()

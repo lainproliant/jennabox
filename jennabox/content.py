@@ -6,7 +6,7 @@
 # Date: Tuesday, August 23rd 2016
 #--------------------------------------------------------------------
 
-import urllib
+import urllib.parse
 
 from .auth import LoginFailure
 from .domain import *
@@ -32,9 +32,8 @@ class ContentModule:
 
 #--------------------------------------------------------------------
 class Page(Renderer):
-    def __init__(self, content, title = "JennaBox <3"):
+    def __init__(self, title = "Jenna's Photo Box"):
         super().__init__()
-        self._content = content
         self._title = title
     
     def render(self):
@@ -44,14 +43,18 @@ class Page(Renderer):
                 self.assets.render(),
                 self.body())
 
+    def content(self):
+        raise NotImplementedError()
+
     def body(self):
+        content = self.content()
+        nav = self.nav.render()
         return [
             self.header.render(),
-            html.div({'class': 'container'})(
-                self.header.render(),
+            html.div({'class': 'container-fluid'})(
                 html.div({'class': 'row'})(
-                    html.div(id = 'nav')({'class': 'col-2 nav-container'})(self.nav.render()),
-                    html.div(id = 'content')({'class': 'col-10 content-container'})(self.content.render())))
+                    html.div({'class': 'col-md-2'})(nav),
+                    html.div({'class': 'col-md-10'})(content)))
         ]
 
     @inject
@@ -59,11 +62,11 @@ class Page(Renderer):
         self.assets = assets
         self.nav = nav
         self.header = header
-        injector.inject(self._content)
 
 #--------------------------------------------------------------------
 class Header(Renderer):
     def __init__(self, auth):
+        super().__init__()
         self.auth = auth
         self.user = auth.get_current_user()
 
@@ -72,32 +75,39 @@ class Header(Renderer):
 
         if self.user is None:
             login_elements = [
-                html.span('Not logged in'),
-                markup.button('Login', '/login_page', righticon = 'sign-in')
+                html.li(html.p({'class': 'navbar-text'})('Not logged in')),
+                html.li(html.a('Login', markup.icon('sign-in'), {'href': '/login_page'}))
             ]
         else:
             login_elements = [
-                html.span('Logged in as %s' % self.user.username),
-                markup.button('Logout', '/logout', righticon = 'sign-out')
+                html.li(html.p({'class': 'navbar-text'})('Logged in as %s' % self.user.username)),
+                html.li(html.a('Logout', markup.icon('sign-out'), {'href': '/logout'}))
             ]
 
-        return html.header(
-            html.nav({'class': 'navbar navbar-inverse navbar-fixed-top'})(
-                html.button({'type': 'button', 'class': 'navbar-toggle collapsed', 'data-toggle': 'collapse',
-                             'data-target': 'navbar', 'aria-expanded': 'false', 'aria-controls': 'navbar'}),
-                html.a({'class': 'navbar-brand', 'href': '/'})(markup.icon('camera-retro'), 'JennaBox'),
-            html.div({'id': 'navbar', 'class': 'navbar-collapse collapse', 'aria-expanded': 'false', 'style': 'height: 1px;'})(
-                html.ul({'class': 'nav navbar-nav navbar-right'})(
-                    [html.li(html.a(href = action.href)(action.label)) for action in self.auth.get_actions()]),
-                html.form({'class': 'navbar-form navbar-right'})(
-                    markup.text_input('query', placeholder='Search with tags')))))
+        return html.nav({'class': 'navbar navbar-inverse navbar-fixed-top'})(
+            html.div({'class': 'container-fluid'})(
+                html.div({'class': 'navbar-header'})(
+                    html.button({'type': 'button', 'class': 'navbar-toggle collapsed', 'data-toggle': 'collapse',
+                                 'data-target': '#navbar', 'aria-expanded': 'false', 'aria-controls': 'navbar'})(
+                        html.span({'class': 'sr-only'})('Toggle navigation'),
+                        html.span({'class': 'icon-bar'}),
+                        html.span({'class': 'icon-bar'}),
+                        html.span({'class': 'icon-bar'})),
+                    html.a({'class': 'navbar-brand', 'href': '/'})(markup.icon('camera-retro'), "Jenna's Photo Box")),
+                html.div({'id': 'navbar', 'class': 'navbar-collapse collapse'})(
+                    html.ul({'class': 'nav navbar-nav navbar-right'})(
+                        login_elements,
+                        [html.li(html.a(href = action().href)(action().label)) for action in Action.values() if action().is_available(self.auth)]),
+                    html.form({'class': 'navbar-form navbar-right', 'action': '/search', 'method': 'get'})(
+                        html.input({'type': 'text', 'name': 'query', 'class': 'form-control', 'placeholder': 'Search with tags'})))))
 
 #--------------------------------------------------------------------
-class ImageSearch(Renderer):
-    def __init__(self, query = '', page = 0):
+class ImageSearch(Page):
+    def __init__(self, query = '', page = 1):
+        super().__init__()
         self.tags = []
         self.ntags = []
-        self.page = page
+        self.page = int(page)
         self.query = query
         
         for tag in query.split():
@@ -106,7 +116,8 @@ class ImageSearch(Renderer):
             else:
                 self.tags.append(tag)
     
-    def render(self):
+    def content(self):
+        results = []
         image_dao = self.dao_factory.get_image_dao()
         
         # Non logged in users must only see images with 'public'
@@ -115,29 +126,36 @@ class ImageSearch(Renderer):
             self.ntags = list(filter(lambda x: x != 'public', self.ntags))
 
         images, count = image_dao.find(self.tags, self.ntags,
-                                       self.image_page_size, self.image_page_size * self.page)
-
-        image_rows = []
-        row = None
-        for x in range(len(images)):
-            image = images[x]
-            if row is None or x % 3 == 0:
-                row = html.div({'class': 'row'})
-                image_rows.append(row)
-
-            row(
-                html.div({'class': 'col-3 mini-image'})(
-                    html.a(href = '/view?id=%s' % image.id)(
-                        html.img(src = '/images/mini/' + image.get_filename()))))
+                                       self.image_page_size, self.image_page_size * (self.page - 1))
         
+        self.nav.set_tags_from_images(images)
+
         row = html.div({'class': 'row'})
-        image_rows.append(row)
-        for x in range(int(count / (self.image_page_size or 1))):
-            row(markup.button('%d' % x, '/search?' + urllib.urlencode({
-                'query':    self.query,
-                'page':     self.page})))
+        ul = html.ul({'class': 'pagination'})
+        row(ul)
+
+        for x in range(0, 1 + int((count - 1) / (self.image_page_size or 1))):
+            page_num = x + 1
+            button = markup.button('%d' % page_num, '/search?' + urllib.parse.urlencode({
+                    'query':    self.query,
+                    'page':     page_num}))
+            ul(button)
+ 
+            if self.page == page_num:
+                button({'class': 'btn-current'})
+            else:
+                button({'class': 'btn-inverse'})
+
+        results.append(row)
+
+        row = html.div({'class': 'row'})
+        for image in images:
+            row(html.div({'class': 'col-md-3 image-result'})(
+                html.a({'href': '/view?id=%s' % image.id})(
+                    html.img({'src': '/images/mini/' + image.get_filename(), 'class': 'mini-image'}))))
+        results.append(row)
         
-        return image_rows
+        return results
         
     @inject
     def inject_deps(self, auth, dao_factory, image_page_size):
@@ -147,75 +165,73 @@ class ImageSearch(Renderer):
         self.image_page_size = image_page_size
 
 #--------------------------------------------------------------------
-class ImageView(Renderer):
+class ImageView(Page):
     def __init__(self, id):
+        super().__init__()
         self.id = id
 
-    def render(self):
+    def content(self):
         image_dao = self.dao_factory.get_image_dao()
         image = image_dao.get(self.id)
         if not image:
             raise cherrypy.NotFound()
 
-        return html.img(src = '/images/' + image.get_filename())
+        self.nav.set_tags_from_images([image])
+        
+        return html.a({'href': '/images/' + image.get_filename()})(
+            html.img({'src': '/images/' + image.get_filename(), 'class': 'image-view'}))
 
     @inject
     def inject_deps(self, dao_factory):
         self.dao_factory = dao_factory
 
 #--------------------------------------------------------------------
-class EmptyPage(Renderer):
-    def render(self):
+class EmptyPage(Page):
+    def content(self):
         return html.h1("Nothing to see here!")
 
 #--------------------------------------------------------------------
-class SearchForm(Renderer):
-    def render(self):
-        return html.form(action='/search', method='get')({'class': 'search-form'})(
-            markup.text_input('query', placeholder='Search with tags'),
-            markup.submit_button()(markup.icon('search'))({'class': 'search-button'}))
-
-#--------------------------------------------------------------------
-class LoginForm(Renderer):
+class LoginPage(Page):
     def __init__(self, failed = False):
+        super().__init__()
         self.failed = failed
 
-    def render(self):
-        container_div = html.div()
-        login_form = html.form(action='/login', method='post')({'class': 'login-form col-4'})(
-            html.div({'class': 'row'})(
-                markup.text_field('username', 'Username:', placeholder = 'your username')),
-            html.div({'class': 'row'})(
-                markup.password_field('password', 'Password:', placeholder = 'your password')),
-            html.div({'class': 'row'})(
-                markup.submit_button('Login')))
-
+    def content(self):
+        elements = []
+        
         if self.failed:
-            container_div(markup.error('Invalid username or password.  Please try again.'))
+            elements.append(markup.error('Invalid user name or password.  Please try again.'))
 
-        return container_div(login_form)
+        elements.append(html.form({'action': '/login', 'method': 'post', 'class': 'form-signin'})(
+            html.h2('Log In', {'class': 'form-signin-heading'}),
+            markup.text_input('username', placeholder = 'Username')({'class': 'form-control'}),
+            markup.password_input('password', placeholder = 'Password')({'class': 'form-control'}),
+            markup.submit_button('Log In')({'class': 'btn btn-lg btn-inverse btn-block'})))
+
+        return elements
 
 #--------------------------------------------------------------------
-class ImageUploadForm(Renderer):
-    def render(self):
-        form = html.form(action='/upload', method='post', enctype='multipart/form-data')(
-            html.div({'class': 'row'})(
+class ImageUploadPage(Page):
+    def content(self):
+        form = html.form({'class': 'form-horizontal'}, action='/upload', method='post', enctype='multipart/form-data')(
+            html.div({'class': 'form-group'})(
                 html.input(id='image_selector', type = 'file', name = 'image_file')),
-            html.div({'class': 'row'})(
-                markup.text_field('tags', 'Tags:', placeholder = 'Enter space-delimited tags')),
-            html.div({'class': 'row'})(
+            html.div({'class': 'form-group'})(
+                html.textarea(name = 'tags', placeholder = 'Enter space-delimited tags')),
+            html.div({'class': 'form-group'})(
                 html.img(id = 'upload-preview', src='/static/images/placeholder.png')),
-            html.div({'class': 'row'})(
+            html.div({'class': 'form-group'})(
                 markup.submit_button('Upload Image')(disabled = None)))
 
         return [markup.js('/static/js/image_upload.js'), form]
 
 #--------------------------------------------------------------------
-class ChangePasswordForm:
+class ChangePasswordPage(Page):
     def __init__(self, failed = False):
+        super().__init__()
         self.failed = failed
 
-    def render(self):
+    def content(self):
         container_div = html.div()
         login_form = html.form(action='/change_password', method='post')({'class': 'login-form col-4'})(
             html.div({'class': 'row'})(
@@ -233,14 +249,23 @@ class ChangePasswordForm:
         return container_div(login_form)
 
 #--------------------------------------------------------------------
-class LeftNav(Renderer):
+class LeftNav:
     def __init__(self, auth):
         self.auth = auth
+        self.tags = []
+    
+    def set_tags_from_images(self, images):
+        tags = set()
+
+        for image in images:
+            for tag in image.tags:
+                tags.add(tag)
+        
+        self.tags = sorted(list(tags))
 
     def render(self):
-        elements = [html.div({'class': 'row'})(SearchForm().render())]
-        if self.auth.has_right(UserRight.UPLOAD):
-            elements.append(html.div({'class': 'row'})(
-                markup.button('Upload', '/upload_page', 'upload')))
-        return elements
+        row = html.div({'class': 'row'})
+        for tag in self.tags:
+            row(html.span({'class': 'badge'}, tag))
+        return row
 

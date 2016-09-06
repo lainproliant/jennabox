@@ -1,0 +1,35 @@
+@import "lib/elements.less";
+
+@thumbnail-width: 300px;
+@thumbnail-height: 200px;
+
+body {
+   padding-top: 65px;
+}
+
+.form-signin {
+   max-width: 300px;
+}
+
+.image-result {
+   width: @thumbnail-width + 30px;
+   height: @thumbnail-height + 30px;
+   border: 1px solid black;
+}
+
+.image-result img {
+   display: block;
+   margin: auto;
+   max-width: @thumbnail-width;
+   max-height: @thumbnail-height;
+}
+
+#upload-preview {
+   max-width: @thumbnail-width;
+   max-height: @thumbnail-height;
+}
+
+.image-view {
+   max-width: 70%;
+   max-height: 70%;
+}

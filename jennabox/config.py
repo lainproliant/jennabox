@@ -25,8 +25,8 @@ class ServerModule:
             '/static/bootstrap/css/bootstrap.css',
             '/static/bootstrap/css/bootstrap-theme.css',
             '/static/css/jennabox.css',
+            '/static/jquery/jquery.js',
             '/static/bootstrap/js/bootstrap.js'
-            '/static/jquery/jquery.js'
         ]
     
     @provide

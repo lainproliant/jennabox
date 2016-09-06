@@ -67,7 +67,7 @@ class MarkupFactory:
         return html.i({'class': ' '.join(['fa', 'fa-' + name] + classes)})
 
     def error(self, message):
-        return html.div({'class': 'row error-box'})(self.icon('times-circle'), message)
+        return html.div({'class': 'alert alert-danger'})(self.icon('times-circle'), message)
 
 #--------------------------------------------------------------------
 markup = MarkupFactory()
