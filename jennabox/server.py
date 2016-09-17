@@ -32,12 +32,12 @@ class JennaBoxServer(BaseServer):
 
     @page
     def login_page(self):
-        return LoginPage()
+        return Login()
 
     @page
     def upload_page(self):
         self.auth.require_right(UserRight.UPLOAD)
-        return ImageUploadPage()
+        return ImageUpload()
 
     @page
     def upload(self, image_file, tags):
@@ -47,25 +47,33 @@ class JennaBoxServer(BaseServer):
         image_dao = self.dao_factory.get_image_dao()
         image = image_dao.save_new_image(image_file, list(tags.split()) + [user_tag])
         raise cherrypy.HTTPRedirect('/view?id=%s' % image.id)
-    
+
     @page
     def view(self, id):
         return ImageView(id)
+
+    @page
+    def edit_page(self, id):
+        self.auth.require_right(UserRight.UPLOAD)
+        return ImageEdit(id)
+
+    @page
+    def edit(self, id, tags):
+        self.auth.require_right(UserRight.UPLOAD)
+        pass
 
     @page
     def login(self, username, password):
         try:
             self.auth.login(username, password)
         except LoginFailure as e:
-            return LoginPage(failed = True)
+            return Login(failed = True)
     @page
-    @UserRight.USER()
     def change_password_page(self):
         self.auth.require_right(UserRight.USER)
-        return ChangePasswordPage()
+        return ChangePassword()
 
     @page
-    @UserRight.USER()
     def change_password(self, old_password, new_password_A, new_password_B):
         # TODO: Make this fail more gracefully, like on the front end maybe.
         self.auth.require_right(UserRight.USER)

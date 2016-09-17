@@ -14,11 +14,16 @@ body {
 .image-result {
    width: @thumbnail-width + 30px;
    height: @thumbnail-height + 30px;
-   border: 1px solid black;
+   line-height: @thumbnail-height + 30px;
+   text-align: center;
+
+   img:hover {
+      box-shadow: 0 0 2em purple;
+   }
 }
 
 .image-result img {
-   display: block;
+   vertical-align: middle;
    margin: auto;
    max-width: @thumbnail-width;
    max-height: @thumbnail-height;
@@ -32,4 +37,34 @@ body {
 .image-view {
    max-width: 70%;
    max-height: 70%;
+}
+
+.left-nav {
+   padding-left: 20px;
+   padding-right: 20px;
+
+   .image-controls {
+      padding-bottom: 8px;
+   }
+
+   a {
+      text-decoration: none;
+
+      &:hover {
+         text-decoration: none;
+      }
+
+      .badge {
+         display: inline-block;
+         margin-top: 4px;
+         font-size: 14px;
+
+         &:hover {
+            background: purple;
+            a {
+               text-decoration: none;
+            }
+         }
+      }
+   }
 }

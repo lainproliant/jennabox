@@ -43,7 +43,7 @@ class Action:
         self.label = label
         self.href = href
         self.rights = rights or []
-    
+
     def is_available(self, auth):
         for right in self.rights:
             if not auth.has_right(right):
@@ -109,4 +109,9 @@ class Image:
 
     def get_filename(self):
         return self.id + Image.MIME_EXT_MAP[self.mime_type]
+
+    def can_edit(self, user, auth):
+        user_tag = 'user:%s' % user.username
+        return (auth.has_right(UserRight.ADMIN) or (
+                auth.has_right(UserRight.UPLOAD) and user_tag in self.tags))
 

@@ -136,7 +136,7 @@ class SqliteImageDao:
         self.db = db_conn
         self.image_dir = image_dir
         self.image_page_size = image_page_size
-        
+
         mini_dir = os.path.join(self.image_dir, 'mini')
         if not os.path.exists(mini_dir):
             os.makedirs(mini_dir)
@@ -152,7 +152,7 @@ class SqliteImageDao:
                 if not data:
                     break
                 outfile.write(data)
-    
+
         # TODO: this probably can't actually handle gifv
         with wand.image.Image(filename = image_filename) as wand_image:
             wand_image.transform(resize = Image.THUMB_RESIZE_TRANSFORM)
@@ -174,41 +174,11 @@ class SqliteImageDao:
             limit = self.image_page_size
 
         c = self.db.cursor()
-        count = 0
-        
-        if tags and ntags:
-            c.execute('select count(*) from images where id in (select distinct id from image_tags where tag in (%s)) and id not in (select distinct id from image_tags where tag in (%s))' % (
-                ','.join('?' * len(tags)),
-                ','.join('?' * len(ntags))), tags + ntags)
-            count = c.fetchone()[0]
-            c.execute('select id from images where id in (select distinct id from image_tags where tag in (%s)) and id not in (select distinct id from image_tags where tag in (%s)) order by datetime(images.ts) desc limit %d offset %d' % (
-                ','.join('?' * len(tags)),
-                ','.join('?' * len(ntags)),
-                limit, offset), tags + ntags)
-        elif tags:
-            c.execute('select count(distinct id) from image_tags where tag in (%s)' % (
-                ','.join('?' * len(tags))), tags)
-            count = c.fetchone()[0]
-            c.execute('select id from images where id in (select distinct id from image_tags where tag in (%s)) order by datetime(images.ts) desc limit %d offset %d' % (
-                ','.join('?' * len(tags)),
-                limit, offset), tags)
-
-        elif ntags:
-            c.execute('select count(*) from images where id not in (select distinct id from image_tags where tag in (%s))' % (
-                ','.join('?' * len(ntags))), ntags)
-            count = c.fetchone()[0]
-            c.execute('select id from images where id not in (select id from image_tags where tag in (%s)) order by datetime(images.ts) desc limit %d offset %d' % (
-                ','.join('?' * len(ntags)),
-                limit, offset), ntags)
-
-        else:
-            c.execute('select count(*) from images')
-            count = c.fetchone()[0]
-            c.execute('select images.id from images order by datetime(images.ts) desc limit %d offset %d' % (
-                limit, offset))
-
+        c.execute(self._build_select_count_query(tags, ntags), tags + ntags)
+        count = c.fetchone()[0]
+        c.execute(self._build_select_query(tags, ntags, limit, offset), tags + ntags)
         return self.get_images([x[0] for x in c.fetchall()]), count
-    
+
     def get(self, image_id):
        images = self.get_images([image_id])
        if images:
@@ -235,4 +205,33 @@ class SqliteImageDao:
                 image_map[id].tags.add(tag)
 
         return list(image_map.values())
+
+    def _build_select_count_query(self, tags, ntags):
+        query = 'select count(*) from images where {tag_queries} and {ntag_queries}'
+        return query.format(
+            tag_queries = self._build_tag_subquery(tags),
+            ntag_queries = self._build_tag_subquery(ntags, eq = False))
+
+    def _build_select_query(self, tags, ntags, limit, offset):
+        query = 'select id from images where {tag_queries} and {ntag_queries} order by datetime(images.ts) desc limit %d offset %d' % (limit, offset)
+        return query.format(
+            tag_queries = self._build_tag_subquery(tags),
+            ntag_queries = self._build_tag_subquery(ntags, eq = False))
+
+    def _build_tag_subquery(self, tags, eq = True):
+        subqueries = []
+        if not tags:
+            return '1'
+
+        subquery = None
+        if eq:
+            subquery = 'id in ({subselect})'
+        else:
+            subquery = 'id not in ({subselect})'
+
+        for tag in tags:
+            subqueries.append(subquery.format(
+                subselect = 'select id from image_tags where tag collate nocase = ?'))
+
+        return ' and '.join(subqueries)
 
