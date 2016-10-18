@@ -47,5 +47,14 @@ debug: all
 
 test: all
 	cp jennabox.sqlite3 $(OUTPUT)/jennabox.sqlite3 || :
+	cp images.tar.gz $(OUTPUT)/images.tar.gz || :
 	cp test_run.py $(OUTPUT)
-	pushd $(OUTPUT); python test_run.py; popd; cp $(OUTPUT)/jennabox.sqlite3 .; rm -rf $(OUTPUT)
+	pushd $(OUTPUT); \
+		tar xzfv images.tar.gz || : ; \
+		python test_run.py; \
+		rm -f images.tar.gz; \
+		tar cvvfz images.tar.gz images; \
+		popd; \
+		cp $(OUTPUT)/jennabox.sqlite3 .; \
+		rm -rf $(OUTPUT)
+

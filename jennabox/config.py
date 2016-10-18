@@ -3,8 +3,7 @@
 #           sharing website.
 #
 # Author: Lain Supe (lainproliant)
-# Date: Tuesday, August 23rd 2016
-#--------------------------------------------------------------------
+# Date: Tuesday, August 23rd 2016 #--------------------------------------------------------------------
 
 import logging
 import logging.config
@@ -27,6 +26,7 @@ class ServerModule:
             '/static/css/jennabox.css',
             '/static/jquery/jquery.js',
             '/static/bootstrap/js/bootstrap.js'
+            '/static/js/angular.js'
         ]
     
     @provide
@@ -45,6 +45,9 @@ class ServerModule:
         cherrypy.config.update({
             'server.socket_host':   '0.0.0.0'
         })
+
+        if not os.path.exists(image_dir):
+            raise FileNotFoundError('"image_dir" (%s) does not exist.' % image_dir)
 
         return {
             '/': {
@@ -77,7 +80,8 @@ class ServerModule:
             user = User('admin',
                 rights = [UserRight.ADMIN],
                 attributes = [UserAttribute.PASSWORD_RESET_REQUIRED])
-            auth.save_user(user, password)
+            user.passhash = auth.encrypt_password(password)
+            user_dao.put(user)
             log.warn('Admin user created with initial password %s, please change!' % password)
             admin = user_dao.get('admin')
         return admin

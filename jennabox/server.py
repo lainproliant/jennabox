@@ -13,93 +13,109 @@ import os
 from datetime import timedelta
 from xeno import *
 
-from .auth import AuthModule, LoginFailure
+from .auth import AuthModule, LoginFailure, require
 from .config import ServerModule
 from .dao import DaoModule
-from .framework import BaseServer, page
+from .framework import BaseServer, render
 from .domain import *
 from .content import *
 
 #--------------------------------------------------------------------
 class JennaBoxServer(BaseServer):
-    @page
+    def __init__(self, injector):
+        self.injector = injector
+
+    def before(self, *args, **kwargs):
+        user = self.auth.get_user()
+        if user.has_attribute(UserAttribute.PASSWORD_RESET_REQUIRED):
+            raise cherrypy.HTTPRedirect('/change-password')
+
+    @cherrypy.expose
+    @render
     def index(self):
-        return ImageSearch()
+        return ImageSearchPage()
 
-    @page
+    @cherrypy.expose
+    @render
     def search(self, query, page = 0):
-        return ImageSearch(query, page)
+        return ImageSearchPage(query, page)
 
-    @page
-    def login_page(self):
-        return Login()
+    @cherrypy.expose
+    @render
+    def login(self):
+        return LoginPage()
 
-    @page
-    def upload_page(self):
-        self.auth.require_right(UserRight.UPLOAD)
-        return ImageUpload()
+    @cherrypy.expose
+    @require(UserRight.UPLOAD)
+    @render
+    def upload(self):
+        return ImageUploadPage()
 
-    @page
-    def upload(self, image_file, tags):
-        self.auth.require_right(UserRight.UPLOAD)
-        user = self.auth.get_current_user()
+    @cherrypy.expose
+    @require(UserRight.UPLOAD)
+    def upload_post(self, image_file, tags):
+        user = self.auth.get_user()
         user_tag = 'user:%s' % user.username
         image_dao = self.dao_factory.get_image_dao()
         image = image_dao.save_new_image(image_file, list(tags.split()) + [user_tag])
         raise cherrypy.HTTPRedirect('/view?id=%s' % image.id)
 
-    @page
+    @cherrypy.expose
+    @render
     def view(self, id):
-        return ImageView(id)
+        return ImageViewPage(id)
 
-    @page
-    def edit_page(self, id):
-        self.auth.require_right(UserRight.UPLOAD)
+    @cherrypy.expose
+    @require(UserRight.UPLOAD)
+    @render
+    def edit(self, id):
         return ImageEdit(id)
 
-    @page
-    def edit(self, id, tags):
+    @cherrypy.expose
+    @require(UserRight.UPLOAD)
+    def edit_post(self, id, tags):
         self.auth.require_right(UserRight.UPLOAD)
         pass
 
-    @page
-    def login(self, username, password):
+    @cherrypy.expose
+    @render
+    def login_post(self, username, password):
         try:
             self.auth.login(username, password)
         except LoginFailure as e:
-            return Login(failed = True)
-    @page
-    def change_password_page(self):
+            return LoginPage(failed = True)
+
+    @cherrypy.expose
+    @require(UserRight.USER)
+    @render
+    def change_password(self):
         self.auth.require_right(UserRight.USER)
         return ChangePassword()
 
-    @page
-    def change_password(self, old_password, new_password_A, new_password_B):
-        # TODO: Make this fail more gracefully, like on the front end maybe.
+    @cherrypy.expose
+    def change_password_post(self, old_password, new_password_A, new_password_B):
         self.auth.require_right(UserRight.USER)
+
         if new_password_A != new_password_B:
             raise LoginFailure('New password and confirm password do not match.')
         self.auth.change_password(old_password, new_password_A)
 
-    @page
+    @cherrypy.expose
+    @require(UserRight.USER)
     def logout(self):
         self.auth.logout()
 
-    @inject
-    def require_admin_user(self, admin_user):
+    @cherrypy.expose
+    @render
+    def images(self, filename):
         pass
-
-    def before(self):
-        user = self.auth.get_current_user()
-        if (user is not None and
-                not cherrypy.request.path_info.startswith('/change_password') and
-                UserAttribute.PASSWORD_RESET_REQUIRED in user.attributes):
-            raise cherrypy.HTTPRedirect('/change_password_page')
 
 #--------------------------------------------------------------------
 def main():
     injector = Injector(ServerModule(), DaoModule(),
                         AuthModule(), ContentModule())
+    injector.require('admin_user')
+
     server = injector.create(JennaBoxServer)
     server.start()
 

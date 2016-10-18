@@ -21,22 +21,18 @@ from .domain import *
 TOKEN_COOKIE = 'jennabook_login'
 
 #--------------------------------------------------------------------
-class LoginFailure(Exception):
-    pass
-
-#--------------------------------------------------------------------
-class AccessDenied(Exception):
-    pass
+def require(*rights):
+    def decorator(f):
+        def require_f(self, *args, **kwargs):
+            user = self.auth.get_user()
+            user.require_rights(rights)
+            return f(self, *args, **kwargs)
+        return require_f
+    return decorator
 
 #--------------------------------------------------------------------
 def random_password(length = 10):
     return ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(length))
-
-#--------------------------------------------------------------------
-def require(f, *rights):
-    def wrapper(self, *args, **kwargs):
-        self.get_auth().require_rights(rights)
-        return f(self, *args, **kwargs)
 
 #--------------------------------------------------------------------
 class AuthModule:
@@ -56,15 +52,12 @@ class AuthModule:
 
 #--------------------------------------------------------------------
 class AuthProvider:
-    def __init__(self, dao_factory, expiry_timedelta, hash_rounds):
+    def __init__(self, log, dao_factory, expiry_timedelta, hash_rounds):
+        self.log = log
         self.dao_factory = dao_factory
         self.expiry_timedelta = expiry_timedelta
         self.hash_rounds = hash_rounds
 
-    @inject
-    def inject_log(self, log):
-        self.log = log
-    
     def login(self, username, password):
         user_dao = self.dao_factory.get_user_dao()
         login_dao = self.dao_factory.get_login_dao()
@@ -80,65 +73,52 @@ class AuthProvider:
         else:
             raise LoginFailure()
 
-    def logout(self):
-        login = self.validate_login()
+    def logout(self, login):
         login_dao = self.dao_factory.get_login_dao()
         login_dao.drop(login.token)
         cherrypy.thread_data.current_user = None
         raise cherrypy.HTTPRedirect('/')
 
-    def change_password(self, old_password, new_password):
-        user = self.get_current_user()
+    def change_password(self, user, old_password, new_password):
         if bcrypt.verify(old_password, user.passhash):
             user.remove_attribute(UserAttribute.PASSWORD_RESET_REQUIRED)
-            self.save_user(user, new_password)
+            user.passhash = self.encrypt_password(password)
+            user_dao = self.dao_factory.get_user_dao()
+            user_dao.put(user)
             raise cherrypy.HTTPRedirect('/')
         else:
-            raise LoginFailure
+            raise LoginFailure()
 
-    def save_user(self, user, password):
-        user.passhash = bcrypt.encrypt(password, rounds = self.hash_rounds)
-        user_dao = self.dao_factory.get_user_dao()
-        user_dao.put(user)
+    def encrypt_password(self, password):
+        return bcrypt.encrypt(password, rounds = self.hash_rounds)
 
-    def validate_login(self):
-        token = self._read_cookie_token()
+    def get_login(self, token = None):
+        if token is None:
+            token = self._read_cookie_token()
+
         if token is None:
             return None
 
         login_dao = self.dao_factory.get_login_dao()
         login = login_dao.get(token)
-        if login is None or token != login.token or datetime.now() > login.expiry_dt:
-            return None
-        else:
+        if login is not None and login.is_valid():
             return login
+        else:
+            return None
 
-    def get_current_user(self):
+    def get_user(self, login = None):
         if not hasattr(cherrypy.thread_data, 'current_user'):
-            login = self.validate_login()
+            if login is None:
+                login = self.get_login()
+
             if login is not None:
                 user_dao = self.dao_factory.get_user_dao()
                 cherrypy.thread_data.current_user = user_dao.get(login.username)
             else:
-                return None
+                return User.GUEST
 
         return cherrypy.thread_data.current_user
     
-    def has_right(self, right):
-        user = self.get_current_user()
-        
-        if not user:
-            return False
-
-        if UserRight.ADMIN in user.rights or right in user.rights:
-            return True
-        else:
-            return False
-
-    def require_right(self, right):
-        if not self.has_right(right):
-            raise AccessDenied('User does not have the "%s" right.' % right)
-
     def _read_cookie_token(self):
         if TOKEN_COOKIE in cherrypy.request.cookie:
             return cherrypy.request.cookie[TOKEN_COOKIE].value

@@ -14,46 +14,27 @@ from xeno import inject
 from .markup import markup
 
 #--------------------------------------------------------------------
-def compose(*decorators):
-    """
-    Compose multiple decorators into a single decorator.
-    """
-    def composed(f):
-        for dec in decorators:
-            f = dec(f)
-        return f
-    return composed
-
-#--------------------------------------------------------------------
 def render(f):
-    def wrapper(self, *args, **kwargs):
-        self.before()
+    def render_f(self, *args, **kwargs):
+        self.before(self, *args, **kwargs)
         renderer = f(self, *args, **kwargs)
         self.injector.inject(renderer)
         return str(renderer.render())
-    return wrapper
-
-#--------------------------------------------------------------------
-page = compose(render, cherrypy.expose)
+    return render_f
 
 #--------------------------------------------------------------------
 class BaseServer:
     @inject
-    def inject_deps(self, injector, cherrypy_config, auth, assets, dao_factory):
+    def inject_deps(self, injector, cherrypy_config, auth, dao_factory):
         self.injector = injector
         self.cherrypy_config = cherrypy_config
         self.auth = auth
-        self.assets = assets
         self.dao_factory = dao_factory
-
-    @inject
-    def set_cherrypy_config(self, cherrypy_config):
-        self.cherrypy_config = cherrypy_config
 
     def start(self):
         cherrypy.quickstart(self, '/', self.cherrypy_config)
 
-    def before(self):
+    def before(self, *args, **kwargs):
         pass
 
 #--------------------------------------------------------------------

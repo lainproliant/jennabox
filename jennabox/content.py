@@ -16,34 +16,13 @@ from indenti import html
 from xeno import inject, provide
 
 #--------------------------------------------------------------------
-class ContentModule:
-    @provide
-    def header(self, auth):
-        return Header(auth)
-
-    @provide
-    def nav(self, injector):
-        return injector.create(LeftNav)
-
-    @provide
-    def assets(self, global_assets):
-        return AssetList().assets(global_assets)
-
-#--------------------------------------------------------------------
 class Page(Renderer):
-    def __init__(self, title = "Jenna's Photo Box"):
-        super().__init__()
-        self._title = title
-
     def render(self):
-        return html.html().doctype('html')(
+        return html.html({'ng-app', 'JennaBox'}).doctype('html')(
             html.head(
-                html.title(self._title)),
-                self.assets.render(),
+                html.title(self.title())),
+                AssetList().assets(self.assets()).render(),
                 self.body())
-
-    def content(self):
-        raise NotImplementedError()
 
     def body(self):
         content = self.content()
@@ -55,27 +34,36 @@ class Page(Renderer):
                     html.div({'class': 'col-md-2'})(nav),
                     html.div({'class': 'col-md-10'})(content)))
         ]
+    
+    def title(self):
+        return "Jennabox"
+
+    def assets(self):
+        return self.global_assets
+
+    def content(self):
+        raise NotImplementedError()
 
     @inject
-    def inject_deps(self, injector, assets, nav, header):
-        self.assets = assets
-        self.nav = nav
+    def inject_deps(self, injector, header, nav, global_assets):
+        self.global_assets = global_assets
         self.header = header
+        self.nav = nav
 
 #--------------------------------------------------------------------
 class Header(Renderer):
     def __init__(self, auth):
         super().__init__()
         self.auth = auth
-        self.user = auth.get_current_user()
+        self.user = auth.get_user()
 
     def render(self):
         login_elements = []
 
-        if self.user is None:
+        if self.user.is_guest():
             login_elements = [
                 html.li(html.p({'class': 'navbar-text'})('Not logged in')),
-                html.li(html.a('Login', markup.icon('sign-in'), {'href': '/login_page'}))
+                html.li(html.a('Login', markup.icon('sign-in'), {'href': '/login'}))
             ]
         else:
             login_elements = [
@@ -96,12 +84,54 @@ class Header(Renderer):
                 html.div({'id': 'navbar', 'class': 'navbar-collapse collapse'})(
                     html.ul({'class': 'nav navbar-nav navbar-right'})(
                         login_elements,
-                        [html.li(html.a(href = action().href)(action().label)) for action in Action.values() if action().is_available(self.auth)]),
+                        [html.li(html.a(href = action().href)(action().label)) for action in Action.values() if action().is_available(self.user)]),
                     html.form({'class': 'navbar-form navbar-right', 'action': '/search', 'method': 'get'})(
                         html.input({'type': 'text', 'name': 'query', 'class': 'form-control', 'placeholder': 'Search with tags'})))))
 
 #--------------------------------------------------------------------
-class ImageSearch(Page):
+class LeftNav:
+    def __init__(self, auth):
+        self.auth = auth
+        self.tags = []
+        self.image = None
+
+    def set_tags_from_images(self, images):
+        tags = set()
+
+        for image in images:
+            for tag in image.tags:
+                tags.add(tag)
+
+        self.tags = sorted(list(tags))
+
+    def set_image(self, image):
+        self.image = image
+        self.set_tags_from_images([image])
+
+    def render(self):
+        container = html.div({
+            'class': 'left-nav',
+            'ng-controller': 'ImageTagController as ctrl'})
+
+        row = html.div({'class': 'row image-controls'})
+        user = self.auth.get_user()
+        if self.image and user:
+            user_tag = 'user:%s' % user.username
+            if self.image.can_edit(user, self.auth):
+                row(markup.button('Edit', '/edit?' + urlencode({'id': self.image.id}),
+                    lefticon = 'pencil-square-o'))
+                container(row)
+
+        row = html.div({'class': 'row'})
+        container(row)
+        for tag in self.tags:
+            row(html.a({'href': '/search?' + urlencode({'query': tag})})(
+                html.span({'class': 'badge'}, tag)))
+
+        return container
+
+#--------------------------------------------------------------------
+class ImageSearchPage(Page):
     def __init__(self, query = '', page = 1):
         super().__init__()
         self.tags = []
@@ -120,7 +150,7 @@ class ImageSearch(Page):
         image_dao = self.dao_factory.get_image_dao()
 
         # Non logged in users must only see images with 'public'
-        if not self.auth.has_right(UserRight.USER):
+        if not self.user.has_right(UserRight.USER):
             self.tags.append('public')
             self.ntags = list(filter(lambda x: x != 'public', self.ntags))
 
@@ -132,18 +162,20 @@ class ImageSearch(Page):
         row = html.div({'class': 'row'})
         ul = html.ul({'class': 'pagination'})
         row(ul)
+        
+        page_count = 1 + int((count - 1) / (self.image_page_size or 1))
+        if page_count > 1:
+            for x in range(0, page_count):
+                page_num = x + 1
+                button = markup.button('%d' % page_num, '/search?' + urlencode({
+                        'query':    self.query,
+                        'page':     page_num}))
+                ul(button)
 
-        for x in range(0, 1 + int((count - 1) / (self.image_page_size or 1))):
-            page_num = x + 1
-            button = markup.button('%d' % page_num, '/search?' + urlencode({
-                    'query':    self.query,
-                    'page':     page_num}))
-            ul(button)
-
-            if self.page == page_num:
-                button({'class': 'btn-current'})
-            else:
-                button({'class': 'btn-inverse'})
+                if self.page == page_num:
+                    button({'class': 'btn-current'})
+                else:
+                    button({'class': 'btn-inverse'})
 
         results.append(row)
 
@@ -158,13 +190,13 @@ class ImageSearch(Page):
 
     @inject
     def inject_deps(self, auth, dao_factory, image_page_size):
-        self.user = auth.get_current_user()
+        self.user = auth.get_user()
         self.auth = auth
         self.dao_factory = dao_factory
         self.image_page_size = image_page_size
 
 #--------------------------------------------------------------------
-class ImageView(Page):
+class ImageViewPage(Page):
     def __init__(self, id):
         super().__init__()
         self.id = id
@@ -190,7 +222,7 @@ class EmptyPage(Page):
         return html.h1("Nothing to see here!")
 
 #--------------------------------------------------------------------
-class Login(Page):
+class LoginPage(Page):
     def __init__(self, failed = False):
         super().__init__()
         self.failed = failed
@@ -201,7 +233,7 @@ class Login(Page):
         if self.failed:
             elements.append(markup.error('Invalid user name or password.  Please try again.'))
 
-        elements.append(html.form({'action': '/login', 'method': 'post', 'class': 'form-signin'})(
+        elements.append(html.form({'action': '/login_post', 'method': 'post', 'class': 'form-signin'})(
             html.h2('Log In', {'class': 'form-signin-heading'}),
             markup.text_input('username', placeholder = 'Username')({'class': 'form-control'}),
             markup.password_input('password', placeholder = 'Password')({'class': 'form-control'}),
@@ -210,9 +242,9 @@ class Login(Page):
         return elements
 
 #--------------------------------------------------------------------
-class ImageUpload(Page):
+class ImageUploadPage(Page):
     def content(self):
-        form = html.form({'class': 'form-horizontal'}, action='/upload', method='post', enctype='multipart/form-data')(
+        form = html.form({'class': 'form-horizontal'}, action='/upload_post', method='post', enctype='multipart/form-data')(
             html.div({'class': 'form-group'})(
                 html.input(id='image_selector', type = 'file', name = 'image_file')),
             html.div({'class': 'form-group'})(
@@ -234,12 +266,11 @@ class ImageEdit(Page):
         image_dao = self.dao_factory.get_image_dao()
         image = image_dao.get(self.id)
 
-        user = self.auth.get_current_user()
         if not image.can_edit(user, self.auth):
             raise AccessDenied('User "%s" is not allowed to edit image with id "%s".' % (
                 user.username, image.id))
 
-        form = html.form({'class': 'form-horizontal'}, action='/edit', method='post')(
+        form = html.form({'class': 'form-horizontal'}, action='/edit_post', method='post')(
             html.div({'class': 'form-group'})(
                 html.textarea(name = 'tags', placeholder = 'Enter space-delimited tags')(' '.join(image.tags))),
             html.div({'class': 'form-group'})(
@@ -262,7 +293,7 @@ class ChangePassword(Page):
 
     def content(self):
         container_div = html.div()
-        login_form = html.form(action='/change_password', method='post')({'class': 'login-form col-4'})(
+        login_form = html.form(action='/change_password_post', method='post')({'class': 'login-form col-4'})(
             html.div({'class': 'row'})(
                 markup.password_field('old_password', 'Old Password:', placeholder = 'your old password')),
             html.div({'class': 'row'})(
@@ -278,41 +309,13 @@ class ChangePassword(Page):
         return container_div(login_form)
 
 #--------------------------------------------------------------------
-class LeftNav:
-    def __init__(self, auth):
-        self.auth = auth
-        self.tags = []
-        self.image = None
+class ContentModule:
+    @provide
+    def nav(self, injector):
+        return injector.create(LeftNav)
 
-    def set_tags_from_images(self, images):
-        tags = set()
+    @provide
+    def header(self, injector):
+        return injector.create(Header)
 
-        for image in images:
-            for tag in image.tags:
-                tags.add(tag)
-
-        self.tags = sorted(list(tags))
-
-    def set_image(self, image):
-        self.image = image
-        self.set_tags_from_images([image])
-
-    def render(self):
-        container = html.div({'class': 'left-nav'})
-        row = html.div({'class': 'row image-controls'})
-        user = self.auth.get_current_user()
-        if self.image and user:
-            user_tag = 'user:%s' % user.username
-            if self.image.can_edit(user, self.auth):
-                row(markup.button('Edit', '/edit_page?' + urlencode({'id': self.image.id}),
-                    lefticon = 'pencil-square-o'))
-                container(row)
-
-        row = html.div({'class': 'row'})
-        container(row)
-        for tag in self.tags:
-            row(html.a({'href': '/search?' + urlencode({'query': tag})})(
-                html.span({'class': 'badge'}, tag)))
-
-        return container
 
