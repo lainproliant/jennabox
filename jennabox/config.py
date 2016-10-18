@@ -25,8 +25,9 @@ class ServerModule:
             '/static/bootstrap/css/bootstrap-theme.css',
             '/static/css/jennabox.css',
             '/static/jquery/jquery.js',
-            '/static/bootstrap/js/bootstrap.js'
-            '/static/js/angular.js'
+            '/static/bootstrap/js/bootstrap.js',
+            '/static/js/angular.js',
+            '/static/js/jennabox.js'
         ]
     
     @provide
@@ -66,8 +67,12 @@ class ServerModule:
     @provide
     @singleton
     def log(self):
-        logging.config.fileConfig('logging.ini')
-        return logging.getLogger()
+        root = logging.getLogger()
+        handler = logging.FileHandler('jennabox.log')
+        formatter = logging.Formatter('%(asctime)s [%(levelname)s] %(message)s')
+        handler.setFormatter(formatter)
+        root.addHandler(handler)
+        return root
 
     @provide
     @singleton
@@ -78,7 +83,7 @@ class ServerModule:
             log.warn('No admin user exists.  Creating now...')
             password = random_password()
             user = User('admin',
-                rights = [UserRight.ADMIN],
+                rights = [UserRight.ADMIN, UserRight.USER],
                 attributes = [UserAttribute.PASSWORD_RESET_REQUIRED])
             user.passhash = auth.encrypt_password(password)
             user_dao.put(user)

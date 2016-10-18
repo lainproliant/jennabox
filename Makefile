@@ -10,8 +10,9 @@ assets/jquery/dist/jquery.js:
 
 copy-code:
 	mkdir -p $(OUTPUT)
+	cp jennabox.log $(OUTPUT)/ || :
+	cp admin.py $(OUTPUT)/
 	cp -r jennabox $(OUTPUT)/jennabox
-	cp logging.ini $(OUTPUT)/
 	cp jennabox-ddl.sql $(OUTPUT)/
 
 copy-jquery:
@@ -56,5 +57,6 @@ test: all
 		tar cvvfz images.tar.gz images; \
 		popd; \
 		cp $(OUTPUT)/jennabox.sqlite3 .; \
+		cp $(OUTPUT)/jennabox.log .; \
 		rm -rf $(OUTPUT)
 

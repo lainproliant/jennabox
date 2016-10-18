@@ -18,7 +18,7 @@ from xeno import inject, provide
 #--------------------------------------------------------------------
 class Page(Renderer):
     def render(self):
-        return html.html({'ng-app', 'JennaBox'}).doctype('html')(
+        return html.html({'ng-app': 'JennaBox'}).doctype('html')(
             html.head(
                 html.title(self.title())),
                 AssetList().assets(self.assets()).render(),
@@ -111,7 +111,8 @@ class LeftNav:
     def render(self):
         container = html.div({
             'class': 'left-nav',
-            'ng-controller': 'ImageTagController as ctrl'})
+            'ng-controller': 'ImageTagController as ctrl',
+            'ng-init': 'ctrl.init()'})
 
         row = html.div({'class': 'row image-controls'})
         user = self.auth.get_user()
@@ -121,12 +122,16 @@ class LeftNav:
                 row(markup.button('Edit', '/edit?' + urlencode({'id': self.image.id}),
                     lefticon = 'pencil-square-o'))
                 container(row)
-
-        row = html.div({'class': 'row'})
+        
+        row = html.div({'class': 'row', 'style': 'display: none', 'ng-show': 'ctrl.loading'})
         container(row)
-        for tag in self.tags:
-            row(html.a({'href': '/search?' + urlencode({'query': tag})})(
-                html.span({'class': 'badge'}, tag)))
+        row(markup.icon('spinner', ['fa-spin', 'fa-5x']))
+
+        row = html.div({'class': 'row', 'style': 'display: none', 'ng-show': '!ctrl.loading'})
+        container(row)
+        
+        row(html.a({'ng-repeat': 'tag in ctrl.tags', 'ng-href': '/search?query={{tag}}'})(
+            html.span({'ng-style': 'ctrl.getTagStyles(tag)', 'class': 'badge'}, '{{tag}}')))
 
         return container
 
@@ -286,27 +291,30 @@ class ImageEdit(Page):
         self.auth = auth
 
 #--------------------------------------------------------------------
-class ChangePassword(Page):
+class ChangePasswordPage(Page):
     def __init__(self, failed = False):
         super().__init__()
         self.failed = failed
 
     def content(self):
-        container_div = html.div()
-        login_form = html.form(action='/change_password_post', method='post')({'class': 'login-form col-4'})(
-            html.div({'class': 'row'})(
-                markup.password_field('old_password', 'Old Password:', placeholder = 'your old password')),
-            html.div({'class': 'row'})(
-                markup.password_field('new_password_A', 'New Password:', placeholder = 'your new password')),
-            html.div({'class': 'row'})(
-                markup.password_field('new_password_B', 'Confirm:', placeholder = 'your new password')),
-            html.div({'class': 'row'})(
-                markup.submit_button('Change Password')))
+        container_div = html.div({'ng-controller': 'ChangePasswordController as ctrl'})
+        form = html.form({'name': 'ctrl.form', 'action': '/change_password_post',
+            'method': 'post', 'class': 'form-signin'})(
+            html.h2('Change Password', {'class': 'form-signin-heading'}),
+            markup.password_input('password', placeholder = 'your old password')(
+                {'ng-model': 'ctrl.oldPassword', 'class': 'form-control'}),
+            markup.password_input('password', placeholder = 'your new password')(
+                {'ng-model': 'ctrl.newPasswordA', 'class': 'form-control'}),
+            markup.password_input('password', placeholder = 'confirm new password')(
+                {'ng-model': 'ctrl.newPasswordB', 'class': 'form-control'}),
+            markup.submit_button('Change Password')(
+                {'ng-disabled': '(!ctrl.newPasswordA.trim()) || (ctrl.newPasswordA != ctrl.newPasswordB)',
+                 'class': 'btn btn-lg btn-inverse btn-block'}))
 
         if self.failed:
             container_div(markup.error('Old password is incorrect, please try again.'))
 
-        return container_div(login_form)
+        return container_div(form)
 
 #--------------------------------------------------------------------
 class ContentModule:

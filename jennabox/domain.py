@@ -18,7 +18,9 @@ class LoginFailure(Exception):
 
 #--------------------------------------------------------------------
 class AccessDenied(Exception):
-    pass
+    def __init__(self, rights):
+        super().__init__()
+        self.rights = rights
 
 #--------------------------------------------------------------------
 @xenum
@@ -119,7 +121,7 @@ class Login:
         self.token = token or uuid.uuid4().urn[9:]
 
     def is_valid(self):
-        return datetime.now() > self.expiry_dt
+        return datetime.now() < self.expiry_dt
 
 #--------------------------------------------------------------------
 class Image:

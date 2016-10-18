@@ -27,7 +27,8 @@ class JennaBoxServer(BaseServer):
 
     def before(self, *args, **kwargs):
         user = self.auth.get_user()
-        if user.has_attribute(UserAttribute.PASSWORD_RESET_REQUIRED):
+        if (user.has_attribute(UserAttribute.PASSWORD_RESET_REQUIRED) and
+            not cherrypy.request.path_info.startswith('/change-password')):
             raise cherrypy.HTTPRedirect('/change-password')
 
     @cherrypy.expose
@@ -74,7 +75,6 @@ class JennaBoxServer(BaseServer):
     @cherrypy.expose
     @require(UserRight.UPLOAD)
     def edit_post(self, id, tags):
-        self.auth.require_right(UserRight.UPLOAD)
         pass
 
     @cherrypy.expose
@@ -89,13 +89,10 @@ class JennaBoxServer(BaseServer):
     @require(UserRight.USER)
     @render
     def change_password(self):
-        self.auth.require_right(UserRight.USER)
-        return ChangePassword()
+        return ChangePasswordPage()
 
     @cherrypy.expose
     def change_password_post(self, old_password, new_password_A, new_password_B):
-        self.auth.require_right(UserRight.USER)
-
         if new_password_A != new_password_B:
             raise LoginFailure('New password and confirm password do not match.')
         self.auth.change_password(old_password, new_password_A)
