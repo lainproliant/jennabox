@@ -84,7 +84,9 @@ class Header(Renderer):
                 html.div({'id': 'navbar', 'class': 'navbar-collapse collapse'})(
                     html.ul({'class': 'nav navbar-nav navbar-right'})(
                         login_elements,
-                        [html.li(html.a(href = action().href)(action().label)) for action in Action.values() if action().is_available(self.user)]),
+                        [html.li(html.a(href = action().href)(
+                            action().label,
+                            markup.icon(action().icon))) for action in Action.values() if action().is_available(self.user)]),
                     html.form({'class': 'navbar-form navbar-right', 'action': '/search', 'method': 'get'})(
                         html.input({'type': 'text', 'name': 'query', 'class': 'form-control', 'placeholder': 'Search with tags'})))))
 
@@ -111,26 +113,25 @@ class LeftNav:
     def render(self):
         container = html.div({
             'class': 'left-nav',
-            'ng-controller': 'ImageTagController as ctrl',
-            'ng-init': 'ctrl.init()'})
+            'ng-controller': 'ImageTagController as ctrl'})
+
+        container(html.input({
+            'type':         'hidden',
+            'value':        ' '.join(self.tags)}))
 
         row = html.div({'class': 'row image-controls'})
         user = self.auth.get_user()
         if self.image and user:
             user_tag = 'user:%s' % user.username
-            if self.image.can_edit(user, self.auth):
+            if self.image.can_edit(user):
                 row(markup.button('Edit', '/edit?' + urlencode({'id': self.image.id}),
                     lefticon = 'pencil-square-o'))
                 container(row)
         
-        row = html.div({'class': 'row', 'style': 'display: none', 'ng-show': 'ctrl.loading'})
-        container(row)
-        row(markup.icon('spinner', ['fa-spin', 'fa-5x']))
-
-        row = html.div({'class': 'row', 'style': 'display: none', 'ng-show': '!ctrl.loading'})
+        row = html.div({'class': 'row'})
         container(row)
         
-        row(html.a({'ng-repeat': 'tag in ctrl.tags', 'ng-href': '/search?query={{tag}}'})(
+        row(html.a({'ng-repeat': 'tag in ctrl.tags.split(" ")', 'ng-href': '/search?query={{tag}}'})(
             html.span({'ng-style': 'ctrl.getTagStyles(tag)', 'class': 'badge'}, '{{tag}}')))
 
         return container
@@ -301,11 +302,11 @@ class ChangePasswordPage(Page):
         form = html.form({'name': 'ctrl.form', 'action': '/change_password_post',
             'method': 'post', 'class': 'form-signin'})(
             html.h2('Change Password', {'class': 'form-signin-heading'}),
-            markup.password_input('password', placeholder = 'your old password')(
+            markup.password_input('old_password', placeholder = 'your old password')(
                 {'ng-model': 'ctrl.oldPassword', 'class': 'form-control'}),
-            markup.password_input('password', placeholder = 'your new password')(
+            markup.password_input('new_password_A', placeholder = 'your new password')(
                 {'ng-model': 'ctrl.newPasswordA', 'class': 'form-control'}),
-            markup.password_input('password', placeholder = 'confirm new password')(
+            markup.password_input('new_password_B', placeholder = 'confirm new password')(
                 {'ng-model': 'ctrl.newPasswordB', 'class': 'form-control'}),
             markup.submit_button('Change Password')(
                 {'ng-disabled': '(!ctrl.newPasswordA.trim()) || (ctrl.newPasswordA != ctrl.newPasswordB)',
@@ -325,5 +326,4 @@ class ContentModule:
     @provide
     def header(self, injector):
         return injector.create(Header)
-
 

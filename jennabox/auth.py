@@ -76,13 +76,13 @@ class AuthProvider:
     def logout(self, login):
         login_dao = self.dao_factory.get_login_dao()
         login_dao.drop(login.token)
-        cherrypy.thread_data.current_user = None
+        del cherrypy.thread_data.current_user
         raise cherrypy.HTTPRedirect('/')
 
     def change_password(self, user, old_password, new_password):
         if bcrypt.verify(old_password, user.passhash):
             user.remove_attribute(UserAttribute.PASSWORD_RESET_REQUIRED)
-            user.passhash = self.encrypt_password(password)
+            user.passhash = self.encrypt_password(new_password)
             user_dao = self.dao_factory.get_user_dao()
             user_dao.put(user)
             raise cherrypy.HTTPRedirect('/')

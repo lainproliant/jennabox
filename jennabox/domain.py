@@ -89,9 +89,13 @@ class User:
             self.rights.remove(right)
     
     def has_rights(self, rights):
+        if UserRight.ADMIN in self.rights:
+            return True
+
         for right in rights:
             if not right in self.rights:
                 return False
+
         return True
 
     def has_right(self, right):
