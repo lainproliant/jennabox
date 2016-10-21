@@ -1,0 +1,104 @@
+/*--------------------------------------------------------------------
+ * Base Style Overrides
+ */
+.form-control {
+  margin-bottom: 4px;
+}
+.navbar a {
+  color: #FFFFFF !important;
+}
+.navbar a:hover {
+  text-shadow: 0 0 1em purple !important;
+}
+.navbar-brand {
+  font-size: 26px;
+}
+/*--------------------------------------------------------------------
+ * Button Styles
+ */
+.btn-inverse {
+  border: 1px solid black;
+  color: white;
+  background: black;
+  transition: all 0.3s ease 0s;
+  text-decoration: none;
+  display: inline-block;
+}
+.btn-inverse:hover {
+  text-decoration: none;
+}
+.btn-inverse:hover:enabled {
+  color: black;
+  background: white;
+}
+.btn-inverse:hover:enabled {
+  box-shadow: 0 0 1em purple;
+}
+.btn-current {
+  display: inline-block;
+  border: 1px solid purple;
+  color: white;
+  background: purple;
+  transition: all 0.3s ease 0s;
+  text-decoration: none;
+}
+.btn-current:hover {
+  text-decoration: none;
+}
+.btn-current:hover:enabled {
+  color: white;
+  background: purple;
+}
+body {
+  padding-top: 65px;
+}
+.form-signin {
+  max-width: 300px;
+}
+.image-result {
+  width: 330px;
+  height: 230px;
+  line-height: 230px;
+  text-align: center;
+}
+.image-result img:hover {
+  box-shadow: 0 0 2em purple;
+}
+.image-result img {
+  vertical-align: middle;
+  margin: auto;
+  max-width: 300px;
+  max-height: 200px;
+}
+#upload-preview {
+  max-width: 300px;
+  max-height: 200px;
+}
+.image-view {
+  max-width: 70%;
+  max-height: 70%;
+}
+.left-nav {
+  padding-left: 20px;
+  padding-right: 20px;
+}
+.left-nav .image-controls {
+  padding-bottom: 8px;
+}
+.left-nav a {
+  text-decoration: none;
+}
+.left-nav a:hover {
+  text-decoration: none;
+}
+.left-nav a .badge {
+  display: inline-block;
+  margin-top: 4px;
+  font-size: 14px;
+}
+.left-nav a .badge:hover {
+  background: purple;
+}
+.left-nav a .badge:hover a {
+  text-decoration: none;
+}

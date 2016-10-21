@@ -3,7 +3,7 @@ ASSETS_IN=assets
 ASSETS_OUT=$(OUTPUT)/static
 LESSC=lessc
 
-all: assets/jquery/dist/jquery.js copy-code copy-jquery copy-font-awesome copy-bootstrap copy-jennabox-assets compile-jennabox-less
+all: assets/jquery/dist/jquery.js copy-code copy-jquery copy-lodash copy-font-awesome copy-bootstrap copy-jennabox-assets compile-jennabox-less
 
 assets/jquery/dist/jquery.js:
 	cd assets/jquery; npm run build
@@ -18,6 +18,10 @@ copy-code:
 copy-jquery:
 	mkdir -p $(ASSETS_OUT)/jquery
 	cp $(ASSETS_IN)/jquery/dist/jquery.js $(ASSETS_OUT)/jquery/jquery.js
+
+copy-lodash:
+	mkdir -p $(ASSETS_OUT)/lodash
+	cp $(ASSETS_IN)/lodash/dist/lodash.js $(ASSETS_OUT)/lodash/lodash.js
 
 copy-font-awesome:
 	mkdir -p $(ASSETS_OUT)/font-awesome

@@ -7,3 +7,6 @@
 [submodule "jquery"]
 	path = assets/jquery
 	url = https://github.com/jquery/jquery
+[submodule "assets/lodash"]
+	path = assets/lodash
+	url = https://github.com/lodash/lodash
