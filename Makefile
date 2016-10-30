@@ -2,8 +2,9 @@ OUTPUT=build
 ASSETS_IN=assets
 ASSETS_OUT=$(OUTPUT)/static
 LESSC=lessc
+JSHINT=jshint
 
-all: assets/jquery/dist/jquery.js copy-code copy-jquery copy-lodash copy-font-awesome copy-bootstrap copy-jennabox-assets compile-jennabox-less
+all: assets/jquery/dist/jquery.js copy-code copy-angular copy-markdown copy-interact copy-jquery copy-lodash copy-font-awesome copy-bootstrap copy-jennabox-assets compile-jennabox-less
 
 assets/jquery/dist/jquery.js:
 	cd assets/jquery; npm run build
@@ -19,9 +20,21 @@ copy-jquery:
 	mkdir -p $(ASSETS_OUT)/jquery
 	cp $(ASSETS_IN)/jquery/dist/jquery.js $(ASSETS_OUT)/jquery/jquery.js
 
+copy-markdown:
+	mkdir -p $(ASSETS_OUT)/markdown
+	cp $(ASSETS_IN)/markdown/markdown.js $(ASSETS_OUT)/markdown/markdown.js
+
+copy-interact:
+	mkdir -p $(ASSETS_OUT)/interact
+	cp $(ASSETS_IN)/interact/interact.js $(ASSETS_OUT)/interact/interact.js
+
 copy-lodash:
 	mkdir -p $(ASSETS_OUT)/lodash
 	cp $(ASSETS_IN)/lodash/dist/lodash.js $(ASSETS_OUT)/lodash/lodash.js
+
+copy-angular:
+	mkdir -p $(ASSETS_OUT)/angular
+	cp $(ASSETS_IN)/angular/angular.js $(ASSETS_OUT)/angular/angular.js
 
 copy-font-awesome:
 	mkdir -p $(ASSETS_OUT)/font-awesome

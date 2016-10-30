@@ -3,7 +3,8 @@
 #           sharing website.
 #
 # Author: Lain Supe (lainproliant)
-# Date: Tuesday, August 23rd 2016 #--------------------------------------------------------------------
+# Date: Tuesday, August 23rd 2016
+#--------------------------------------------------------------------
 
 import logging
 import logging.config
@@ -26,15 +27,17 @@ class ServerModule:
             '/static/css/jennabox.css',
             '/static/lodash/lodash.js',
             '/static/jquery/jquery.js',
+            '/static/interact/interact.js',
             '/static/bootstrap/js/bootstrap.js',
-            '/static/js/angular.js',
+            '/static/angular/angular.js',
+            '/static/markdown/markdown.js',
             '/static/js/jennabox.js'
         ]
     
     @provide
     @singleton
     def image_dir(self):
-        return '/opt/jennabox/images'
+        return os.path.abspath(os.path.expanduser('~/jenna-images'))
 
     @provide
     @singleton

@@ -141,8 +141,8 @@ class SqliteImageDao:
         if not os.path.exists(mini_dir):
             os.makedirs(mini_dir)
 
-    def save_new_image(self, image_file, tags):
-        image = Image(mime_type = str(image_file.content_type), tags = tags)
+    def save_new_image(self, image_file, summary, tags):
+        image = Image(mime_type = str(image_file.content_type), summary = summary, tags = tags)
         image_filename = os.path.join(self.image_dir, image.get_filename())
         mini_filename = os.path.join(self.image_dir, 'mini', image.get_filename())
 
@@ -163,7 +163,7 @@ class SqliteImageDao:
 
     def save_image(self, image):
         c = self.db.cursor()
-        c.execute('insert or replace into images(id, mime_type, ts) values(?, ?, ?)', (image.id, image.mime_type, image.timestamp))
+        c.execute('insert or replace into images(id, mime_type, summary, ts) values(?, ?, ?, ?)', (image.id, image.mime_type, image.summary, image.timestamp))
         c.execute('delete from image_tags where id = ?', (image.id,))
         for tag in image.tags:
             c.execute('insert into image_tags (id, tag) values(?, ?)', (image.id, tag))

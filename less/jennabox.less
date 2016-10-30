@@ -30,8 +30,8 @@ body {
 }
 
 #upload-preview {
-   max-width: @thumbnail-width;
-   max-height: @thumbnail-height;
+   width: @thumbnail-width;
+   height: @thumbnail-height;
 }
 
 .image-view {
@@ -54,17 +54,43 @@ body {
          text-decoration: none;
       }
 
-      .badge {
-         display: inline-block;
-         margin-top: 4px;
-         font-size: 14px;
-
-         &:hover {
-            background: purple;
-            a {
-               text-decoration: none;
-            }
-         }
-      }
    }
 }
+
+.badge {
+	display: inline-block;
+	margin-top: 4px;
+	font-size: 14px;
+
+	&:hover {
+		background: purple;
+		a {
+			text-decoration: none;
+		}
+	}
+}
+
+.tag {
+	font-size: 14px;
+	padding: .3em .4em .4em;
+	margin: 0 .1em;
+
+	a.remove {
+		color: #bbb;
+		cursor: pointer;
+		opacity: 0.6;
+	   margin: 0 0 0 .3em;
+		vertical-align: bottom;
+		top: 0;
+
+		&:hover {
+		  opacity: 1.0
+		}
+
+		i {
+			color: #fff;
+			margin-bottom: 2px;
+		}
+	}
+}
+

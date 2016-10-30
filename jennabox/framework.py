@@ -43,14 +43,6 @@ class Renderer:
         raise NotImplementedError()
 
 #--------------------------------------------------------------------
-class HTML(Renderer):
-    def __init__(self, *elements):
-        self.elements = elements
-
-    def render(self):
-        return self.elements
-
-#--------------------------------------------------------------------
 class AssetList(Renderer):
     def __init__(self):
         self._js_files = []

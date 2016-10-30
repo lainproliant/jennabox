@@ -8,6 +8,7 @@
 #--------------------------------------------------------------------
 
 import cherrypy
+import json
 import os
 
 from datetime import timedelta
@@ -55,11 +56,11 @@ class JennaBoxServer(BaseServer):
 
     @cherrypy.expose
     @require(UserRight.UPLOAD)
-    def upload_post(self, image_file, tags):
+    def upload_post(self, image_file, summary, tags):
         user = self.auth.get_user()
         user_tag = 'user:%s' % user.username
         image_dao = self.dao_factory.get_image_dao()
-        image = image_dao.save_new_image(image_file, list(tags.split()) + [user_tag])
+        image = image_dao.save_new_image(image_file, summary, json.loads(tags) + [user_tag])
         raise cherrypy.HTTPRedirect('/view?id=%s' % image.id)
 
     @cherrypy.expose
@@ -71,12 +72,23 @@ class JennaBoxServer(BaseServer):
     @require(UserRight.UPLOAD)
     @render
     def edit(self, id):
-        return ImageEdit(id)
+        return ImageEditPage(id)
 
     @cherrypy.expose
     @require(UserRight.UPLOAD)
-    def edit_post(self, id, tags):
-        pass
+    def edit_post(self, id, summary, tags):
+        user = self.auth.get_user()
+        image_dao = self.dao_factory.get_image_dao()
+        image = image_dao.get(id)
+        
+        if not image.can_edit(user):
+            raise AccessDenied('User "%s" is not allowed to edit image with id "%s".' % (
+                user.username, image.id))
+
+        image.tags = set(json.loads(tags))
+        image.summary = summary
+        image_dao.save_image(image)
+        raise cherrypy.HTTPRedirect('/view?id=%s' % image.id)
 
     @cherrypy.expose
     @render

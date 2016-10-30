@@ -18,6 +18,7 @@ create table user_attributes (
 create table images (
    id                text primary key not null,
    mime_type         text not null,
+   summary           text default '',
    ts                timestamp not null
 );
 

@@ -138,12 +138,13 @@ class Image:
 
     THUMB_RESIZE_TRANSFORM = '300x400>'
 
-    def __init__(self, id = None, mime_type = None, timestamp = None, tags = None, attributes = None):
+    def __init__(self, id = None, mime_type = None, summary = None, timestamp = None, tags = None, attributes = None):
         if not mime_type in Image.MIME_EXT_MAP:
             raise ValueError('Invalid Image mime_type: %s' % mime_type)
 
         self.id = (id or uuid.uuid4().urn[9:])
         self.mime_type = mime_type
+        self.summary = summary
         self.tags = set(tags or [])
         self.attributes = set(attributes or [])
         self.timestamp = timestamp or datetime.now()

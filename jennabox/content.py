@@ -6,9 +6,10 @@
 # Date: Tuesday, August 23rd 2016
 #--------------------------------------------------------------------
 
-from .auth import LoginFailure
+import json
+
 from .domain import *
-from .framework import Renderer, HTML, AssetList
+from .framework import Renderer, AssetList
 from .markup import markup
 
 from urllib.parse import urlencode
@@ -111,13 +112,16 @@ class LeftNav:
         self.set_tags_from_images([image])
 
     def render(self):
-        container = html.div({
-            'class': 'left-nav',
-            'ng-controller': 'ImageTagController'})
+        container = html.div({'class': 'left-nav'})
 
-        container(html.input({
-            'type':         'hidden',
-            'value':        ' '.join(self.tags)}))
+        if self.tags:
+            container({'ng-controller': 'ImageController',
+                       'ng-init': 'init()'})
+
+            container(html.input({
+                'id':           'init_tag_list',
+                'type':         'hidden',
+                'value':        json.dumps(self.tags)}))
 
         row = html.div({'class': 'row image-controls'})
         user = self.auth.get_user()
@@ -128,11 +132,12 @@ class LeftNav:
                     lefticon = 'pencil-square-o'))
                 container(row)
         
-        row = html.div({'class': 'row'})
-        container(row)
-        
-        row(html.a({'ng-repeat': 'tag in ctrl.tags.split(" ")', 'ng-href': '/search?query={{tag}}'})(
-            html.span({'ng-style': 'ctrl.getTagStyles(tag)', 'class': 'badge'}, '{{tag}}')))
+        if self.tags:
+            row = html.div({'class': 'row', 'ng-show': 'tags.length > 0'})
+            container(row)
+            
+            row(html.a({'ng-repeat': 'tag in tags', 'ng-href': '/search?query={{tag}}'})(
+                html.span({'ng-class': 'getTagClasses(tag)'}, '{{tag}}')))
 
         return container
 
@@ -215,8 +220,9 @@ class ImageViewPage(Page):
 
         self.nav.set_image(image)
 
-        return html.a({'href': '/images/' + image.get_filename()})(
-            html.img({'src': '/images/' + image.get_filename(), 'class': 'image-view'}))
+        return [html.a({'href': '/images/' + image.get_filename()})(
+                    html.img({'src': '/images/' + image.get_filename(), 'class': 'image-view'})),
+                html.div({'id': 'summary_display', 'data-markdown': image.summary})]
 
     @inject
     def inject_deps(self, dao_factory):
@@ -250,50 +256,69 @@ class LoginPage(Page):
 #--------------------------------------------------------------------
 class ImageUploadPage(Page):
     def content(self):
-        div = html.div({'ng-controller': 'ImageTagController'})
-        form = html.form({'class': 'form-horizontal'}, action='/upload_post', method='post', enctype='multipart/form-data')(
+        div = html.div({'ng-controller': 'ImageController', 'ng-init': 'init()'})
+        form = html.form({'class': 'form-horizontal', 'action': '/upload_post', 'method': 'post', 'enctype': 'multipart/form-data',
+                          'ng-submit': 'addTagsFromInput(tag_input)'})(
+            html.input({'type': 'hidden', 'name': 'tags', 'value': '{{tags}}'}),
             html.div({'class': 'form-group'})(
                 html.img(id = 'upload-preview', src='/static/images/placeholder.png')),
             html.div({'class': 'form-group'})(
                 html.input(id='image_selector', type = 'file', name = 'image_file')),
             html.div({'class': 'form-group'})(
-                markup.text_input('tags', placeholder = 'Enter space-delimited tags')({'ng-model': 'tag_input', 'ng-trim': 'false'})),
+                html.input({'type': 'text', 'placeholder': 'Enter space-delimited tags', 'ng-model': 'tag_input', 'ng-trim': 'false'})),
             html.div({'class': 'form-group'})(
                 html.span({'ng-repeat': 'tag in tags', 'ng-click': 'deleteTag(tag)', 'ng-class': 'getTagClasses(tag)'})(
                     "{{tag}}")),
+            html.div({'class': 'form-group'})(
+                html.textarea(name='summary', id='summary_text')(
+                    {'class': 'summary', 'ng-model': 'summary'}),
+                html.div(id = 'summary_display')),
             html.div({'class': 'form-group'})(
                 markup.submit_button('Upload Image')(disabled = None)))
 
         return [markup.js('/static/js/image_upload.js'), div(form)]
 
 #--------------------------------------------------------------------
-class ImageEdit(Page):
+class ImageEditPage(Page):
     def __init__(self, id):
         super().__init__()
         self.id = id
 
     def content(self):
+        div = html.div({'ng-controller': 'ImageController', 'ng-init': 'init()'})
+
         image_dao = self.dao_factory.get_image_dao()
         image = image_dao.get(self.id)
 
-        if not image.can_edit(user, self.auth):
+        if not image.can_edit(self.user):
             raise AccessDenied('User "%s" is not allowed to edit image with id "%s".' % (
                 user.username, image.id))
 
-        form = html.form({'class': 'form-horizontal'}, action='/edit_post', method='post')(
-            html.div({'class': 'form-group'})(
-                html.textarea(name = 'tags', placeholder = 'Enter space-delimited tags')(' '.join(image.tags))),
+        form = html.form({'class': 'form-horizontal', 'action': '/edit_post', 'method': 'post', 'ng-submit': 'addTagsFromInput(tag_input)'})(
+            html.input({'type': 'hidden', 'name': 'id', 'value': image.id}),
+            html.input({'type': 'hidden', 'name': 'tags', 'value': '{{tags}}'}),
+            html.input({'type': 'hidden', 'id': 'init_tag_list', 'value': json.dumps(sorted(list(image.tags)))}),
             html.div({'class': 'form-group'})(
                 html.img(id = 'upload-preview', src='/images/' + image.get_filename())),
             html.div({'class': 'form-group'})(
+                html.input({'type': 'text', 'placeholder': 'Enter space-delimited tags', 'ng-model': 'tag_input', 'ng-trim': 'false'})),
+            html.div({'class': 'form-group'})(
+                html.span({'ng-repeat': 'tag in tags', 'ng-click': 'deleteTag(tag)', 'ng-class': 'getTagClasses(tag)'})(
+                    "{{tag}}")),
+            html.div({'class': 'form-group'})(
+                html.textarea(name='summary', id='summary_text')(image.summary)(
+                    {'class': 'summary', 'ng-model': 'summary'}),
+                html.div(id = 'summary_display')),
+            html.div({'class': 'form-group'})(
                 markup.submit_button('Edit Image')))
 
-        return form
+        return div(form)
 
     @inject
     def inject_deps(self, auth, dao_factory):
         self.dao_factory = dao_factory
         self.auth = auth
+        self.user = auth.get_user()
 
 #--------------------------------------------------------------------
 class ChangePasswordPage(Page):
