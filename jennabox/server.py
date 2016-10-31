@@ -22,11 +22,19 @@ from .domain import *
 from .content import *
 
 #--------------------------------------------------------------------
+@cherrypy.tools.register('on_start_resource')
+def server_before_handler():
+    import pdb
+    pdb.set_trace()
+
+#--------------------------------------------------------------------
 class JennaBoxServer(BaseServer):
     def __init__(self, injector):
         self.injector = injector
 
     def before(self, *args, **kwargs):
+        super().before(self, *args, **kwargs)
+
         user = self.auth.get_user()
         if (user and
             user.has_attribute(UserAttribute.PASSWORD_RESET_REQUIRED) and

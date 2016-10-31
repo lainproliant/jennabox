@@ -48,7 +48,7 @@ class ServerModule:
     @singleton
     def cherrypy_config(self, image_dir):
         cherrypy.config.update({
-            'server.socket_host':   '0.0.0.0'
+            'server.socket_host':   '127.0.0.1'
         })
 
         if not os.path.exists(image_dir):
