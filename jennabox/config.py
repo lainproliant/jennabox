@@ -56,7 +56,8 @@ class ServerModule:
 
         return {
             '/': {
-                'tools.staticdir.root':     os.path.abspath(os.getcwd())
+                'tools.staticdir.root':     os.path.abspath(os.getcwd()),
+                'tools.jennabox_server.on': True
             },
             '/static': {
                 'tools.staticdir.on':       True,

@@ -14,6 +14,16 @@ from xeno import inject
 from .markup import markup
 
 #--------------------------------------------------------------------
+def jennabox_server():
+    handler = cherrypy.serving.request.handler
+    if hasattr(handler, 'callable'):
+        server = handler.callable.__self__
+        if hasattr(server, 'before') and callable(server.before):
+            server.before()
+
+cherrypy.tools.jennabox_server = cherrypy.Tool('on_start_resource', jennabox_server)
+
+#--------------------------------------------------------------------
 def render(f):
     def render_f(self, *args, **kwargs):
         self.before(self, *args, **kwargs)
@@ -35,7 +45,62 @@ class BaseServer:
         cherrypy.quickstart(self, '/', self.cherrypy_config)
 
     def before(self, *args, **kwargs):
-        pass
+        ThreadLocalStorage().clear()
+
+#--------------------------------------------------------------------
+class ThreadLocalStorage:
+    """
+        A wrapper class around CherryPy thread local storage.
+    """
+
+    def __init__(self):
+        if not hasattr(cherrypy.thread_data, 'thread_local_storage'):
+            self.clear()
+
+    def clear(self):
+        cherrypy.thread_data.thread_local_storage = {}
+
+    def remove(self, key):
+        del cherrypy.thread_data.thread_local_storage[key]
+
+    def contains(self, key):
+        return key in cherrypy.thread_data.thread_local_storage
+
+    def get(self, key, default = None):
+        if self.contains(key):
+            return cherrypy.thread_data.thread_local_storage[key]
+        else:
+            return default
+
+    def put(self, key, value):
+        cherrypy.thread_data.thread_local_storage[key] = value
+
+#--------------------------------------------------------------------
+class Cookies:
+    """
+        A wrapper around cherrypy request cookies.
+    """
+    
+    def __init__(self, request = None, response = None):
+        self.request = request or cherrypy.request
+        self.response = response or cherrypy.response
+
+    def exists(self, cookie):
+        return cookie in self.request.cookie
+
+    def get(self, cookie):
+        if self.exists(cookie):
+            return self.request.cookie[cookie].value
+        else:
+            return None
+
+    def put(self, cookie, value, path = '/', max_age = None, version = 1):
+        self.response.cookie[cookie] = value
+        self.response.cookie[cookie]['path'] = path
+        self.response.cookie[cookie]['version'] = version
+
+        if max_age is not None:
+            self.response.cookie[cookie]['max-age'] = max_age
 
 #--------------------------------------------------------------------
 class Renderer:

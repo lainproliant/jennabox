@@ -15,10 +15,12 @@ from datetime import datetime, timedelta
 from xeno import *
 from xenum import *
 
+from .framework import ThreadLocalStorage, Cookies
 from .domain import *
 
 #--------------------------------------------------------------------
 TOKEN_COOKIE = 'jennabook_login'
+CURRENT_USER = 'current_user'
 
 #--------------------------------------------------------------------
 def require(*rights):
@@ -76,7 +78,7 @@ class AuthProvider:
     def logout(self, login):
         login_dao = self.dao_factory.get_login_dao()
         login_dao.drop(login.token)
-        del cherrypy.thread_data.current_user
+        ThreadLocalStorage().remove(CURRENT_USER)
         raise cherrypy.HTTPRedirect('/')
 
     def change_password(self, user, old_password, new_password):
@@ -107,27 +109,24 @@ class AuthProvider:
             return None
 
     def get_user(self, login = None):
-        if not hasattr(cherrypy.thread_data, 'current_user'):
+        tls = ThreadLocalStorage()
+        user = tls.get(CURRENT_USER)
+        if user is None or (login is not None and user.username != login.username):
             if login is None:
                 login = self.get_login()
 
             if login is not None:
                 user_dao = self.dao_factory.get_user_dao()
-                cherrypy.thread_data.current_user = user_dao.get(login.username)
+                user = user_dao.get(login.username)
+                tls.put(CURRENT_USER, user)
             else:
-                return User.GUEST
+                user = User.GUEST
 
-        return cherrypy.thread_data.current_user
+        return user
     
     def _read_cookie_token(self):
-        if TOKEN_COOKIE in cherrypy.request.cookie:
-            return cherrypy.request.cookie[TOKEN_COOKIE].value
-        else:
-            return None
+        return Cookies().get(TOKEN_COOKIE)
 
     def _write_cookie_token(self, token):
-        cherrypy.response.cookie[TOKEN_COOKIE] = token
-        cherrypy.response.cookie[TOKEN_COOKIE]['path'] = '/'
-        cherrypy.response.cookie[TOKEN_COOKIE]['max-age'] = 60*60*24
-        cherrypy.response.cookie[TOKEN_COOKIE]['version'] = 1
+        Cookies().put(TOKEN_COOKIE, token, max_age = 60*60*24)
 
