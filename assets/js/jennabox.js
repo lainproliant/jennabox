@@ -9,6 +9,10 @@
       $('[data-markdown]').each(function(idx, element) {
          $(element).html(markdown.toHTML($(element).data('markdown')));
       });
+
+      $('[data-textarea-content]').each(function(idx, element) {
+         $(element).val($(element).data('textarea-content'));
+      });
    });
    
    angular.module('JennaBox', [])

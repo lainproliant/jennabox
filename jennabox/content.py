@@ -306,8 +306,8 @@ class ImageEditPage(Page):
                 html.span({'ng-repeat': 'tag in tags', 'ng-click': 'deleteTag(tag)', 'ng-class': 'getTagClasses(tag)'})(
                     "{{tag}}")),
             html.div({'class': 'form-group'})(
-                html.textarea(name='summary', id='summary_text')(image.summary)(
-                    {'class': 'summary', 'ng-model': 'summary'}),
+                html.textarea(name='summary', id='summary_text')(
+                    {'class': 'summary', 'ng-model': 'summary', 'data-textarea-content': image.summary}),
                 html.div(id = 'summary_display')),
             html.div({'class': 'form-group'})(
                 markup.submit_button('Edit Image')))
