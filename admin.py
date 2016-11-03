@@ -2,11 +2,15 @@
 import argparse
 import collections
 import getpass
+import json
 import logging
+import os
 import sys
+import wand
 
 from jennabox.dao import DaoModule
 from jennabox.auth import AuthModule
+from jennabox.config import ServerModule
 from xeno import *
 
 #--------------------------------------------------------------------
@@ -43,6 +47,33 @@ class Config:
     def parse_args(self):
         self.get_arg_parser().parse_known_args(namespace = self)
         return self
+
+#----------------------------------------------------------
+@cmap('dump-metadata')
+class DumpMetadata(Config):
+    def __init__(self, dao_factory):
+        self.dao_factory = dao_factory
+        self.parse_args()
+
+    def get_arg_parser(self):
+        parent = super().get_arg_parser()
+        parser = argparse.ArgumentParser(parents = [parent], prog = 'admin.py dump-metadata')
+        parser.add_argument('-i', '--image', dest='image_id',
+                            metavar='IMAGE_ID', required=True)
+        return parser
+
+    def __call__(self):
+        image_dao = self.dao_factory.get_image_dao()
+        image = image_dao.get(self.image_id)
+        if image is None:
+            raise Exception('No image with id "%s" exists.' % self.image_id)
+        image_filename = os.path.join(image_dao.image_dir, image.get_filename())
+        metadata_map = {}
+        with wand.image.Image(filename = image_filename) as wand_image:
+            for key, value in wand_image.metadata.items():
+                metadata_map[key] = value
+
+        print(json.dumps(metadata_map, indent=4))
 
 #----------------------------------------------------------
 @cmap('reset-password')
@@ -85,7 +116,8 @@ def main():
         if config.command not in cmap:
             raise Exception('Unknown command, known commands: %s' % ', '.join(cmap.commands()))
 
-        injector = Injector(AdminCommandModule(), DaoModule(), AuthModule())
+        injector = Injector(AdminCommandModule(), DaoModule(),
+                            AuthModule(), ServerModule())
         injector.create(cmap[config.command])()
 
     except Exception as e:
