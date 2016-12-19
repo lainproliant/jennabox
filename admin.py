@@ -9,8 +9,9 @@ import sys
 import wand
 
 from jennabox.dao import DaoModule
-from jennabox.auth import AuthModule
+from jennabox.auth import AuthModule, random_password, input_password
 from jennabox.config import ServerModule
+from jennabox.domain import *
 from xeno import *
 
 #--------------------------------------------------------------------
@@ -49,6 +50,38 @@ class Config:
         return self
 
 #----------------------------------------------------------
+@cmap('backfill-metadata')
+class BackfillMetadata(Config):
+    BATCH_SIZE = 5
+
+    def __init__(self, dao_factory):
+        self.dao_factory = dao_factory
+        self.parse_args()
+
+    def __call__(self):
+        image_dao = self.dao_factory.get_image_dao()
+        images, total = image_dao.find([], [], limit = BackfillMetadata.BATCH_SIZE)
+        offset = 0
+
+        print('==> Scanning %d total images for metadata backfill.', total)
+        while offset < total:
+            for image in images:
+                print('-> Scanning %s... [%s]' % (image.id, ', '.join(sorted(list(image.tags)))))
+                original_tags = set(image.tags)
+                image.populate_from_metadata(image_dao.get_metadata(image))
+                difference_set = image.tags - original_tags
+                if difference_set:
+                    print('\tAdding tags [%s]' % (', '.join(sorted(list(difference_set)))))
+                    image_dao.save_image(image)
+
+            print('==> Processed %d/%d images (%%%d)' % (
+                offset + len(images), total,
+                int(100 * float(offset + len(images)) / float(total))))
+
+            offset += len(images)
+            images, total = image_dao.find([], [], limit = BackfillMetadata.BATCH_SIZE, offset = offset)
+
+#----------------------------------------------------------
 @cmap('dump-metadata')
 class DumpMetadata(Config):
     def __init__(self, dao_factory):
@@ -67,13 +100,49 @@ class DumpMetadata(Config):
         image = image_dao.get(self.image_id)
         if image is None:
             raise Exception('No image with id "%s" exists.' % self.image_id)
-        image_filename = os.path.join(image_dao.image_dir, image.get_filename())
-        metadata_map = {}
-        with wand.image.Image(filename = image_filename) as wand_image:
-            for key, value in wand_image.metadata.items():
-                metadata_map[key] = value
-
+        metadata_map = image_dao.get_metadata(image)
         print(json.dumps(metadata_map, indent=4))
+
+#----------------------------------------------------------
+@cmap('add-user')
+class AddUser(Config):
+    def __init__(self, dao_factory, auth):
+        self.dao_factory = dao_factory
+        self.auth = auth
+        self.parse_args()
+
+    def get_arg_parser(self):
+        parent = super().get_arg_parser()
+        parser = argparse.ArgumentParser(parents = [parent], prog = 'admin.py add-user')
+        parser.add_argument('-u', '--username', metavar='USERNAME', required=True)
+        parser.add_argument('-r', '--rights', metavar='RIGHTS', required=True)
+        parser.add_argument('-p', '--provide-password', action='store_true')
+        return parser
+
+    def __call__(self):
+        password = None
+        user_dao = self.dao_factory.get_user_dao()
+        user = User(
+            username = self.username,
+            rights = ([UserRight.USER] +
+                [UserRight.by_name(x) for x in self.rights.split(',')]),
+            attributes = [])
+
+        if self.provide_password:
+            password = input_password()
+        else:
+            password = random_password()
+            user.attributes.add(UserAttribute.PASSWORD_RESET_REQUIRED)
+
+        user.passhash = self.auth.encrypt_password(password)
+        user_dao.put(user)
+
+        print('User %s created.' % user.username)
+
+        if not self.provide_password:
+            print()
+            print('The user\'s initial password is "%s".' % password)
+            print('They will be required to provide their own password on first login.')
 
 #----------------------------------------------------------
 @cmap('reset-password')
@@ -94,7 +163,7 @@ class ResetPassword(Config):
         user = user_dao.get(self.username)
         if user is None:
             raise Exception('Unknown user "%s"' % self.username)
-       
+
         passwordA = getpass.getpass(prompt = 'Password: ')
         passwordB = getpass.getpass(prompt = 'Confirm password: ')
 

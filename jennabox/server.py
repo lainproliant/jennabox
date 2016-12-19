@@ -14,21 +14,18 @@ import os
 from datetime import timedelta
 from xeno import *
 
-from .auth import AuthModule, LoginFailure, require
+from .auth import AuthModule, LoginFailure
 from .config import ServerModule
 from .dao import DaoModule
-from .framework import BaseServer, render
+from .framework import server, before, render, require
 from .domain import *
 from .content import *
 
 #--------------------------------------------------------------------
-class JennaBoxServer(BaseServer):
-    def __init__(self, injector):
-        self.injector = injector
-
+@server
+class JennaBoxServer:
+    @before
     def before(self, *args, **kwargs):
-        super().before(self, *args, **kwargs)
-
         user = self.auth.get_user()
         if (user and
             user.has_attribute(UserAttribute.PASSWORD_RESET_REQUIRED) and

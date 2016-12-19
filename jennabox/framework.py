@@ -7,6 +7,7 @@
 #--------------------------------------------------------------------
 
 import cherrypy
+import inspect
 import os
 
 from xeno import inject
@@ -14,26 +15,48 @@ from xeno import inject
 from .markup import markup
 
 #--------------------------------------------------------------------
-def jennabox_server():
-    handler = cherrypy.serving.request.handler
-    if hasattr(handler, 'callable'):
-        server = handler.callable.__self__
-        if hasattr(server, 'before') and callable(server.before):
-            server.before()
+def before(f):
+    f.before = True
+    return f
 
-cherrypy.tools.jennabox_server = cherrypy.Tool('on_start_resource', jennabox_server)
+#--------------------------------------------------------------------
+def require(*rights):
+    def decorator(f):
+        def require_f(self, *args, **kwargs):
+            user = self.auth.get_user()
+            user.require_rights(rights)
+            return f(self, *args, **kwargs)
+        return require_f
+        if hasattr(f, 'exposed'):
+            require_f.exposed = f.exposed
+    return decorator
 
 #--------------------------------------------------------------------
 def render(f):
     def render_f(self, *args, **kwargs):
-        self.before(self, *args, **kwargs)
         renderer = f(self, *args, **kwargs)
         self.injector.inject(renderer)
         return str(renderer.render())
+    if hasattr(f, 'exposed'):
+        render_f.exposed = f.exposed
     return render_f
 
 #--------------------------------------------------------------------
-class BaseServer:
+def server(cls):
+    @inject
+    def inject_deps(self, injector, log, cherrypy_config, auth, dao_factory):
+        self.injector = injector
+        self.cherrypy_config = cherrypy_config
+        self.auth = auth
+        self.dao_factory = dao_factory
+        self.log = log
+    
+    cls._pre_handlers = []
+
+    @before
+    def clear_local_storage(self, *args, **kwargs):
+        ThreadLocalStorage().clear()
+
     @inject
     def inject_deps(self, injector, cherrypy_config, auth, dao_factory):
         self.injector = injector
@@ -43,9 +66,32 @@ class BaseServer:
 
     def start(self):
         cherrypy.quickstart(self, '/', self.cherrypy_config)
+    
+    def before_impl(self, *args, **kwargs):
+        for f in cls._pre_handlers:
+            f(self, *args, **kwargs)
 
-    def before(self, *args, **kwargs):
-        ThreadLocalStorage().clear()
+    setattr(cls, '_before_impl', before_impl)
+    setattr(cls, '_clear_local_storage', clear_local_storage)
+    setattr(cls, '_inject_deps', inject_deps)
+    setattr(cls, 'start', start)
+    
+    def supported_method(f):
+        def supported_f(self, *args, **kwargs):
+            self._before_impl(self, *args, **kwargs)
+            return f(self, *args, **kwargs)
+        if hasattr(f, 'exposed'):
+            supported_f.exposed = f.exposed
+        return supported_f
+
+    for name, f in inspect.getmembers(cls, predicate=callable):
+        if hasattr(f, 'exposed') and f.exposed:
+            setattr(cls, name, supported_method(f))
+
+        if hasattr(f, 'before'):
+            cls._pre_handlers.append(f)
+
+    return cls
 
 #--------------------------------------------------------------------
 class ThreadLocalStorage:
@@ -59,6 +105,9 @@ class ThreadLocalStorage:
 
     def clear(self):
         cherrypy.thread_data.thread_local_storage = {}
+
+    def items(self):
+        return cherrypy.thread_data.thread_local_storage.items()
 
     def remove(self, key):
         del cherrypy.thread_data.thread_local_storage[key]

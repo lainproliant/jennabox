@@ -35,7 +35,7 @@ class Page(Renderer):
                     html.div({'class': 'col-md-2'})(nav),
                     html.div({'class': 'col-md-10'})(content)))
         ]
-    
+
     def title(self):
         return "Jennabox"
 
@@ -131,11 +131,11 @@ class LeftNav:
                 row(markup.button('Edit', '/edit?' + urlencode({'id': self.image.id}),
                     lefticon = 'pencil-square-o'))
                 container(row)
-        
+
         if self.tags:
             row = html.div({'class': 'row', 'ng-show': 'tags.length > 0'})
             container(row)
-            
+
             row(html.a({'ng-repeat': 'tag in tags', 'ng-href': '/search?query={{tag}}'})(
                 html.span({'ng-class': 'getTagClasses(tag)'}, '{{tag}}')))
 
@@ -173,7 +173,7 @@ class ImageSearchPage(Page):
         row = html.div({'class': 'row'})
         ul = html.ul({'class': 'pagination'})
         row(ul)
-        
+
         page_count = 1 + int((count - 1) / (self.image_page_size or 1))
         if page_count > 1:
             for x in range(0, page_count):
@@ -191,8 +191,10 @@ class ImageSearchPage(Page):
         results.append(row)
 
         row = html.div({'class': 'row'})
+        debug_n = 0
         for image in images:
-            row(html.div({'class': 'col-md-3 image-result'})(
+            debug_n += 1
+            row(html.div({'class': 'col-md-3 image-result debug-%d' % debug_n})(
                 html.a({'href': '/view?id=%s' % image.id})(
                     html.img({'src': '/images/mini/' + image.get_filename(), 'class': 'mini-image'}))))
         results.append(row)

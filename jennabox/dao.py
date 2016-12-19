@@ -153,19 +153,31 @@ class SqliteImageDao:
                     break
                 outfile.write(data)
 
-        # TODO: this probably can't actually handle gifv
+        # TODO: this definitely can't handle gifv, let's try to support that someday
         with wand.image.Image(filename = image_filename) as wand_image:
             wand_image.transform(resize = Image.THUMB_RESIZE_TRANSFORM)
             wand_image.save(filename = mini_filename)
 
+        image.populate_from_metadata(self.get_metadata(image))
         self.save_image(image)
         return image
 
+    def get_metadata(self, image):
+        metadata_map = {}
+        image_filename = os.path.join(self.image_dir, image.get_filename())
+
+        with wand.image.Image(filename = image_filename) as wand_image:
+            for key, value in wand_image.metadata.items():
+                metadata_map[key] = value
+
+        return metadata_map
+
     def save_image(self, image):
         c = self.db.cursor()
-        c.execute('insert or replace into images(id, mime_type, summary, ts) values(?, ?, ?, ?)', (image.id, image.mime_type, image.summary, image.timestamp))
+        c.execute('insert or replace into images(id, mime_type, summary, ts, create_ts) values(?, ?, ?, ?, ?)', (image.id, image.mime_type, image.summary, image.timestamp, image.create_timestamp))
         c.execute('delete from image_tags where id = ?', (image.id,))
         for tag in image.tags:
+            # TODO: this can be done more optimally with a batch insert or replace
             c.execute('insert into image_tags (id, tag) values(?, ?)', (image.id, tag))
         self.db.commit()
 
@@ -213,7 +225,7 @@ class SqliteImageDao:
             ntag_queries = self._build_tag_subquery(ntags, eq = False))
 
     def _build_select_query(self, tags, ntags, limit, offset):
-        query = 'select id from images where {tag_queries} and {ntag_queries} order by datetime(images.ts) desc limit %d offset %d' % (limit, offset)
+        query = 'select id from images where {tag_queries} and {ntag_queries} order by images.ts desc limit %d offset %d' % (limit, offset)
         return query.format(
             tag_queries = self._build_tag_subquery(tags),
             ntag_queries = self._build_tag_subquery(ntags, eq = False))

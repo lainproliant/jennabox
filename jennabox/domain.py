@@ -10,6 +10,8 @@ import uuid
 from datetime import datetime
 from xenum import xenum, sref, ctor
 
+from dateutil.parser import parse as parse_dt
+
 from .markup import *
 
 #--------------------------------------------------------------------
@@ -87,7 +89,7 @@ class User:
     def remove_right(self, right):
         if right in self.rights:
             self.rights.remove(right)
-    
+
     def has_rights(self, rights):
         if UserRight.ADMIN in self.rights:
             return True
@@ -100,7 +102,7 @@ class User:
 
     def has_right(self, right):
         return self.has_rights([right])
-    
+
     def require_rights(self, rights):
         if not self.has_rights(rights):
             raise AccessDenied(rights)
@@ -116,7 +118,7 @@ class User:
 
 User.GUEST = User('guest', rights = [UserRight.GUEST])
 User.GUEST.guest = True
-    
+
 #--------------------------------------------------------------------
 class Login:
     def __init__(self, username, expiry_dt, token = None):
@@ -132,13 +134,17 @@ class Image:
     MIME_EXT_MAP = {
         'image/jpeg':   '.jpg',
         'image/png':    '.png',
-        'image/gif':    '.gif',
-        'video/mp4':    '.gifv'
+        'image/gif':    '.gif'
     }
 
     THUMB_RESIZE_TRANSFORM = '300x400>'
 
-    def __init__(self, id = None, mime_type = None, summary = None, timestamp = None, tags = None, attributes = None):
+    @staticmethod
+    def parse_exif_dt(exif_dt):
+        return datetime.strptime(exif_dt, '%Y:%m:%d %H:%M:%S')
+
+    def __init__(self, id = None, mime_type = None, summary = None, timestamp = None,
+                 create_timestamp = None, tags = None, attributes = None):
         if not mime_type in Image.MIME_EXT_MAP:
             raise ValueError('Invalid Image mime_type: %s' % mime_type)
 
@@ -148,10 +154,11 @@ class Image:
         self.tags = set(tags or [])
         self.attributes = set(attributes or [])
         self.timestamp = timestamp or datetime.now()
+        self.create_timestamp = create_timestamp
 
     def get_filename(self):
         return self.id + Image.MIME_EXT_MAP[self.mime_type]
-    
+
     def can_view(self, user):
         return (user.has_right(UserRight.ADMIN) or
                 user.get_tag() in self.tags)
@@ -159,4 +166,34 @@ class Image:
     def can_edit(self, user):
         return (user.has_right(UserRight.ADMIN) or (
                 user.has_right(UserRight.UPLOAD) and user.get_tag() in self.tags))
+
+    def add_tags(self, *args):
+        for arg in args:
+            self.tags.add(arg)
+
+    def populate_from_metadata(self, metadata_map):
+        ts = None
+
+        if 'exif:DateTime' in metadata_map:
+            try:
+                ts = Image.parse_exif_dt(metadata_map['exif:DateTime'])
+            except:
+                self.add_tags('flag:invalid-exif-datetime')
+
+        elif 'date:create' in metadata_map:
+            try:
+                ts = parse_dt(metadata_map['date:create'])
+            except:
+                self.add_tags('flag:invalid-date-create')
+
+            self.add_tags('flag:missing-exif-datetime')
+        else:
+            self.add_tags('flag:missing-exif-datetime',
+                          'flag:missing-date-create')
+
+        if ts is not None:
+            self.create_timestamp = ts
+            self.add_tags(
+                'date:%d' % ts.year,
+                'date:%02d-%d' % (ts.month, ts.year))
 

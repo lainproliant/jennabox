@@ -11,6 +11,7 @@ import random
 import string
 
 from passlib.hash import bcrypt
+from getpass import getpass
 from datetime import datetime, timedelta
 from xeno import *
 from xenum import *
@@ -23,18 +24,19 @@ TOKEN_COOKIE = 'jennabook_login'
 CURRENT_USER = 'current_user'
 
 #--------------------------------------------------------------------
-def require(*rights):
-    def decorator(f):
-        def require_f(self, *args, **kwargs):
-            user = self.auth.get_user()
-            user.require_rights(rights)
-            return f(self, *args, **kwargs)
-        return require_f
-    return decorator
-
-#--------------------------------------------------------------------
 def random_password(length = 10):
     return ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(length))
+
+#--------------------------------------------------------------------
+def input_password():
+    while True:
+        passA = getpass(prompt="Enter password: ")
+        passB = getpass(prompt="Confirm password: ")
+
+        if passA == passB:
+            return passA
+        else:
+            print('Passwords do not match.  Please try again.')
 
 #--------------------------------------------------------------------
 class AuthModule:
@@ -123,7 +125,7 @@ class AuthProvider:
                 user = User.GUEST
 
         return user
-    
+
     def _read_cookie_token(self):
         return Cookies().get(TOKEN_COOKIE)
 
