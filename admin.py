@@ -104,6 +104,26 @@ class DumpMetadata(Config):
         print(json.dumps(metadata_map, indent=4))
 
 #----------------------------------------------------------
+@cmap('delete-image')
+class DeleteImage(Config):
+    def __init__(self, dao_factory):
+        self.dao_factory = dao_factory
+        self.parse_args()
+
+    def get_arg_parser(self):
+        parent = super().get_arg_parser()
+        parser = argparse.ArgumentParser(parents = [parent], prog = 'admin.py delete-image')
+        parser.add_argument('-i', '--image', dest='image_id',
+                            metavar='IMAGE_ID', required=True)
+        return parser
+
+    def __call__(self):
+        image_dao = self.dao_factory.get_image_dao()
+        image = image_dao.get(self.image_id)
+        image_dao.delete_image(image)
+        print('Image %s deleted.' % self.image_id)
+
+#----------------------------------------------------------
 @cmap('add-user')
 class AddUser(Config):
     def __init__(self, dao_factory, auth):

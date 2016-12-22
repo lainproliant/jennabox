@@ -140,11 +140,15 @@ class SqliteImageDao:
         mini_dir = os.path.join(self.image_dir, 'mini')
         if not os.path.exists(mini_dir):
             os.makedirs(mini_dir)
+    
+    def get_image_filenames(self, image):
+        image_filename = os.path.join(self.image_dir, image.get_filename())
+        mini_filename = os.path.join(self.image_dir, 'mini', image.get_filename())
+        return image_filename, mini_filename
 
     def save_new_image(self, image_file, summary, tags):
         image = Image(mime_type = str(image_file.content_type), summary = summary, tags = tags)
-        image_filename = os.path.join(self.image_dir, image.get_filename())
-        mini_filename = os.path.join(self.image_dir, 'mini', image.get_filename())
+        image_filename, mini_filename = self.get_image_filenames(image)
 
         with open(image_filename, 'wb') as outfile:
             while True:
@@ -161,6 +165,14 @@ class SqliteImageDao:
         image.populate_from_metadata(self.get_metadata(image))
         self.save_image(image)
         return image
+
+    def delete_image(self, image):
+        image_filename, mini_filename = self.get_image_filenames(image)
+        c = self.db.cursor()
+        c.execute('delete from images where id = ?', (image.id,))
+        os.remove(image_filename)
+        os.remove(mini_filename)
+        self.db.commit()
 
     def get_metadata(self, image):
         metadata_map = {}
