@@ -19,7 +19,8 @@ create table images (
    id                text primary key not null,
    mime_type         text not null,
    summary           text default '',
-   ts                timestamp not null
+   ts                timestamp not null,
+   create_ts         timestamp default null
 );
 
 create table image_tags (

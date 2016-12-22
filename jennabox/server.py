@@ -29,8 +29,8 @@ class JennaBoxServer:
         user = self.auth.get_user()
         if (user and
             user.has_attribute(UserAttribute.PASSWORD_RESET_REQUIRED) and
-            not cherrypy.request.path_info.startswith('/change-password')):
-            raise cherrypy.HTTPRedirect('/change-password')
+            not cherrypy.request.path_info.startswith('/change_password')):
+            raise cherrypy.HTTPRedirect('/change_password')
 
     @cherrypy.expose
     @render
@@ -79,7 +79,7 @@ class JennaBoxServer:
         user = self.auth.get_user()
         image_dao = self.dao_factory.get_image_dao()
         image = image_dao.get(id)
-        
+
         if not image.can_edit(user):
             raise AccessDenied('User "%s" is not allowed to edit image with id "%s".' % (
                 user.username, image.id))

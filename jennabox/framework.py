@@ -50,32 +50,24 @@ def server(cls):
         self.auth = auth
         self.dao_factory = dao_factory
         self.log = log
-    
+
     cls._pre_handlers = []
 
     @before
     def clear_local_storage(self, *args, **kwargs):
         ThreadLocalStorage().clear()
 
-    @inject
-    def inject_deps(self, injector, cherrypy_config, auth, dao_factory):
-        self.injector = injector
-        self.cherrypy_config = cherrypy_config
-        self.auth = auth
-        self.dao_factory = dao_factory
-
     def start(self):
         cherrypy.quickstart(self, '/', self.cherrypy_config)
-    
+
     def before_impl(self, *args, **kwargs):
         for f in cls._pre_handlers:
             f(self, *args, **kwargs)
 
     setattr(cls, '_before_impl', before_impl)
-    setattr(cls, '_clear_local_storage', clear_local_storage)
     setattr(cls, '_inject_deps', inject_deps)
     setattr(cls, 'start', start)
-    
+
     def supported_method(f):
         def supported_f(self, *args, **kwargs):
             self._before_impl(self, *args, **kwargs)
@@ -91,6 +83,7 @@ def server(cls):
         if hasattr(f, 'before'):
             cls._pre_handlers.append(f)
 
+    cls._pre_handlers.insert(0, clear_local_storage)
     return cls
 
 #--------------------------------------------------------------------
@@ -129,7 +122,7 @@ class Cookies:
     """
         A wrapper around cherrypy request cookies.
     """
-    
+
     def __init__(self, request = None, response = None):
         self.request = request or cherrypy.request
         self.response = response or cherrypy.response
@@ -172,7 +165,7 @@ class AssetList(Renderer):
 
     def asset(self, asset):
         ext = os.path.splitext(asset)[1]
-            
+
         if ext == '.js':
             self._js_files.append(asset)
         elif ext == '.css':
