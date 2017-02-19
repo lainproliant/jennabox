@@ -68,12 +68,9 @@ test: all
 	cp images.tar.gz $(OUTPUT)/images.tar.gz || :
 	cp test_run.py $(OUTPUT)
 	pushd $(OUTPUT); \
-		tar xzfv images.tar.gz || : ; \
 		python test_run.py; \
-		rm -f images.tar.gz; \
-		tar cvvfz images.tar.gz images; \
-		popd; \
-		cp $(OUTPUT)/jennabox.sqlite3 .; \
-		cp $(OUTPUT)/jennabox.log .; \
-		rm -rf $(OUTPUT)
+	popd; \
+	cp $(OUTPUT)/jennabox.sqlite3 .; \
+	cp $(OUTPUT)/jennabox.log .; \
+	rm -rf $(OUTPUT)
 

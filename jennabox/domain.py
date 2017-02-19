@@ -118,6 +118,7 @@ class User:
 
 User.GUEST = User('guest', rights = [UserRight.GUEST])
 User.GUEST.guest = True
+User.ALL = 'user:all'
 
 #--------------------------------------------------------------------
 class Login:
@@ -165,7 +166,9 @@ class Image:
 
     def can_edit(self, user):
         return (user.has_right(UserRight.ADMIN) or (
-                user.has_right(UserRight.UPLOAD) and user.get_tag() in self.tags))
+                user.has_right(UserRight.UPLOAD) and (
+                    user.get_tag() in self.tags) or (
+                    User.ALL in self.tags)))
 
     def add_tags(self, *args):
         for arg in args:

@@ -23,7 +23,7 @@ class DaoModule:
     @provide
     @singleton
     def db_file(self):
-        return 'jennabox.sqlite3'
+        return os.path.abspath(os.path.expanduser('~/jennabox.sqlite3'))
 
     @provide
     @singleton

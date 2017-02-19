@@ -7,6 +7,7 @@
 #--------------------------------------------------------------------
 
 import json
+import cherrypy
 
 from .domain import *
 from .framework import Renderer, AssetList
@@ -267,7 +268,7 @@ class ImageUploadPage(Page):
             html.div({'class': 'form-group'})(
                 html.input(id='image_selector', type = 'file', name = 'image_file')),
             html.div({'class': 'form-group'})(
-                html.input({'type': 'text', 'placeholder': 'Enter space-delimited tags', 'ng-model': 'tag_input', 'ng-trim': 'false'})),
+                html.input({'type': 'text', 'placeholder': 'Enter space-delimited tags', 'ng-model': 'tag_input', 'ng-trim': 'false', 'class': 'tag-input-box'})),
             html.div({'class': 'form-group'})(
                 html.span({'ng-repeat': 'tag in tags', 'ng-click': 'deleteTag(tag)', 'ng-class': 'getTagClasses(tag)'})(
                     "{{tag}}")),

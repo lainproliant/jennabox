@@ -50,6 +50,44 @@ class Config:
         return self
 
 #----------------------------------------------------------
+@cmap('recover-missing-db-images')
+class RecoverMissingDbImages(Config):
+    def __init__(self, dao_factory, image_dir):
+        self.dao_factory = dao_factory
+        self.image_dir = image_dir
+        self.parse_args()
+
+    def __call__(self):
+        image_dao = self.dao_factory.get_image_dao()
+
+        for id, mime_type in self.list_all_uploaded_image_ids():
+            image = image_dao.get(id)
+            count = 0
+            if image is None:
+                print("Restoring image %s..." % id)
+                self.restore_lost_image(id, mime_type)
+                count += 1
+
+            print("Restored %d images." % count)
+
+    def list_all_uploaded_image_ids(self):
+        supported_image_exts = set(Image.MIME_EXT_MAP.values())
+        ext_mime_map = {v: k for k, v in Image.MIME_EXT_MAP.items()}
+
+        for image_file in os.listdir(self._image_dir):
+            name, ext = os.path.splitext(image_file):
+                if ext in supported_image_exts:
+                    mime_type = ext_mime_map[ext]
+                    yield name, mime_type
+
+    def restore_lost_image(self, id, mime_type):
+        image_dao = self.dao_factory.get_image_dao()
+        image = Image(id = id, mime_type = mime_type,
+            summary = "Image recovered from deletion.")
+        image.add_tags(User.ALL, 'flag:recovered')
+        image_dao.save_image(image)
+
+#----------------------------------------------------------
 @cmap('backfill-metadata')
 class BackfillMetadata(Config):
     BATCH_SIZE = 5
