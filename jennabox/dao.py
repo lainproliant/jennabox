@@ -132,10 +132,11 @@ class SqliteUserDao:
 
 #--------------------------------------------------------------------
 class SqliteImageDao:
-    def __init__(self, db_conn, image_dir, image_page_size):
+    def __init__(self, log, db_conn, image_dir, image_page_size):
         self.db = db_conn
         self.image_dir = image_dir
         self.image_page_size = image_page_size
+        self.log = log
 
         mini_dir = os.path.join(self.image_dir, 'mini')
         if not os.path.exists(mini_dir):
@@ -179,8 +180,12 @@ class SqliteImageDao:
         image_filename = os.path.join(self.image_dir, image.get_filename())
 
         with wand.image.Image(filename = image_filename) as wand_image:
-            for key, value in wand_image.metadata.items():
-                metadata_map[key] = value
+            try:
+                for key, value in wand_image.metadata.items():
+                    metadata_map[key] = value
+            except Exception as e:
+                self.log.exception("Failed to parse image metadata for image %s." % image.id)
+                image.add_tags('flag:metadata_exception')
 
         return metadata_map
 
