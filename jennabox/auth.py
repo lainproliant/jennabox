@@ -41,8 +41,8 @@ def input_password():
 #--------------------------------------------------------------------
 class AuthModule:
     @provide
-    def auth(self, injector):
-        return injector.create(AuthProvider)
+    async def auth(self, injector):
+        return await injector.create_async(AuthProvider)
 
     @provide
     @singleton

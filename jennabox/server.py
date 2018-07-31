@@ -128,7 +128,7 @@ class JennaBoxServer:
 def main():
     injector = Injector(ServerModule(), DaoModule(),
                         AuthModule(), ContentModule())
-    injector.require('admin_user')
+    #injector.require('admin_user')
 
     server = injector.create(JennaBoxServer)
     server.start()

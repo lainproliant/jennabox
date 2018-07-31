@@ -352,10 +352,10 @@ class ChangePasswordPage(Page):
 #--------------------------------------------------------------------
 class ContentModule:
     @provide
-    def nav(self, injector):
-        return injector.create(LeftNav)
+    async def nav(self, injector):
+        return await injector.create_async(LeftNav)
 
     @provide
-    def header(self, injector):
-        return injector.create(Header)
+    async def header(self, injector):
+        return await injector.create_async(Header)
 
